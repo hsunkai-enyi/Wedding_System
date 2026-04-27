@@ -5,15 +5,59 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPOHNwJgpDtr
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Login Protection ---
-    if(!sessionStorage.getItem('isAdminAuth')) {
-        let pass = prompt('🔒 請輸入管理員密碼進入後台 (預設密碼: admin123):');
-        if(pass === 'admin123' || pass === '1234') {
-            sessionStorage.setItem('isAdminAuth', 'true');
-        } else {
-            alert('密碼錯誤！已將您導回賓客查詢首頁。');
-            window.location.href = 'index.html';
-            return; // Stop further execution
+    const loginOverlay = document.getElementById('adminLoginOverlay');
+    const passwordInput = document.getElementById('adminPasswordInput');
+    const loginBtn = document.getElementById('btnLoginSubmit');
+    const aside = document.querySelector('.admin-sidebar');
+    const main = document.querySelector('.admin-main');
+
+    function checkAuth() {
+        if(sessionStorage.getItem('isAdminAuth')) {
+            if(loginOverlay) loginOverlay.style.display = 'none';
+            if(aside) aside.style.display = 'flex';
+            if(main) main.style.display = 'block';
+            return true;
         }
+        return false;
+    }
+
+    if(!checkAuth()) {
+        loginBtn.addEventListener('click', () => {
+            const pass = passwordInput.value;
+            const customPass = localStorage.getItem('weddingAdminPassword');
+            const validPasses = ['admin123', '1234'];
+            if(customPass) validPasses.push(customPass);
+
+            if(validPasses.includes(pass)) {
+                sessionStorage.setItem('isAdminAuth', 'true');
+                checkAuth();
+                renderGuests();
+            } else {
+                alert('密碼錯誤！');
+                passwordInput.value = '';
+            }
+        });
+        passwordInput.addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') loginBtn.click();
+        });
+    }
+
+    // --- Password Change Logic ---
+    const btnChangePassword = document.getElementById('btnChangePassword');
+    if(btnChangePassword) {
+        btnChangePassword.addEventListener('click', () => {
+            const currentCustom = localStorage.getItem('weddingAdminPassword');
+            const newPass = prompt(`請輸入新的後台管理密碼：\n(若要恢復預設，請清除內容)\n\n目前狀態: ${currentCustom ? '已自訂密碼' : '使用預設密碼'}`);
+            if(newPass !== null) { // User didn't click Cancel
+                if(newPass.trim() === '') {
+                    localStorage.removeItem('weddingAdminPassword');
+                    alert('已恢復預設密碼！');
+                } else {
+                    localStorage.setItem('weddingAdminPassword', newPass.trim());
+                    alert('密碼已成功更新！請牢記新密碼。');
+                }
+            }
+        });
     }
 
     // --- Data Model Migration & Initialization ---
@@ -23,6 +67,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let mainTableSize = parseInt(localStorage.getItem('weddingMainTableSize')) || 110;
     let guestTableSize = parseInt(localStorage.getItem('weddingGuestTableSize')) || 90;
     let categories = JSON.parse(localStorage.getItem('weddingCategories')) || ["男方親友", "女方親友", "男方朋友", "女方朋友", "工作人員", "其他", "未分類"];
+    let weddingInfo = JSON.parse(localStorage.getItem('weddingInfo')) || {
+        groomName: "莊勛凱",
+        brideName: "楊恩懿",
+        weddingDate: "2026-10-25",
+        weddingTimeDesc: "17:30 迎賓入席 ｜ 18:30 晚宴開席",
+        venueName: "茹曦酒店 ILLUME TAIPEI",
+        venueHall: "5F 斯賓諾莎廳",
+        venueAddress: "台北市松山區敦化北路100號",
+        googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=茹曦酒店+ILLUME+TAIPEI",
+        hotelMapUrl: "illume_map.jpg",
+        parkingInfo: "賓客免費停車\n請利用茹曦酒店停車場，因車位有限，停滿為止\n⚠️ 提醒：車位限高 1.75 米"
+    };
+    // 飯店地圖獨立儲存（避免 base64 圖片擐爆 weddingInfo JSON）
+    let hotelMapData = localStorage.getItem('weddingHotelMap') || '';
 
     function renderCategorySelects() {
         const addCat = document.getElementById('addGuestCategory');
@@ -51,11 +109,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function saveData() {
-        localStorage.setItem('weddingGuests', JSON.stringify(guests));
-        localStorage.setItem('weddingMap', mapUrl);
-        localStorage.setItem('weddingTables', JSON.stringify(tables));
-        localStorage.setItem('weddingMainTableSize', mainTableSize);
-        localStorage.setItem('weddingGuestTableSize', guestTableSize);
+        try {
+            localStorage.setItem('weddingGuests', JSON.stringify(guests));
+            localStorage.setItem('weddingMap', mapUrl);
+            localStorage.setItem('weddingTables', JSON.stringify(tables));
+            localStorage.setItem('weddingMainTableSize', mainTableSize);
+            localStorage.setItem('weddingGuestTableSize', guestTableSize);
+            localStorage.setItem('weddingInfo', JSON.stringify(weddingInfo));
+            if(hotelMapData) {
+                localStorage.setItem('weddingHotelMap', hotelMapData);
+            }
+        } catch(e) {
+            console.error('localStorage 儲存失敗:', e);
+            if(e.name === 'QuotaExceededError') {
+                alert('⚠️ 儲存空間不足！請嘗試上傳較小的圖片（建議 500KB 以下）。');
+            }
+        }
         
         let editorNode = document.getElementById('mapEditor');
         if (editorNode && editorNode.clientWidth > 0) {
@@ -87,7 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 weddingEditorHeight: localStorage.getItem('weddingEditorHeight') || 800,
                 weddingMapAspectW: localStorage.getItem('weddingMapAspectW') || 0,
                 weddingMapAspectH: localStorage.getItem('weddingMapAspectH') || 0,
-                weddingCategories: JSON.stringify(categories)
+                weddingCategories: JSON.stringify(categories),
+                weddingInfo: JSON.stringify(weddingInfo),
+                weddingHotelMap: hotelMapData
             };
             
             try {
@@ -109,32 +180,77 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Navigation Logic ---
-    const btnNavList = document.getElementById('btnNavList');
-    const btnNavMap = document.getElementById('btnNavMap');
-    const viewListManage = document.getElementById('viewListManage');
-    const viewVenueLayout = document.getElementById('viewVenueLayout');
+    btnNavMap.addEventListener('click', () => {
+        btnNavMap.classList.add('active');
+        btnNavList.classList.remove('active');
+        btnNavInfo.classList.remove('active');
+        viewVenueLayout.style.display = 'block';
+        viewListManage.style.display = 'none';
+        viewWeddingInfo.style.display = 'none';
+        renderMapEditor();
+    });
 
-    const subBtnTableGraphics = document.getElementById('subBtnTableGraphics');
-    const subBtnGuestList = document.getElementById('subBtnGuestList');
-    const viewTableGraphics = document.getElementById('viewTableGraphics');
-    const viewGuestList = document.getElementById('viewGuestList');
-    const toolbarGuest = document.getElementById('toolbarGuest');
-    const toolbarTable = document.getElementById('toolbarTable');
+    const btnNavInfo = document.getElementById('btnNavInfo');
+    const viewWeddingInfo = document.getElementById('viewWeddingInfo');
+
+    btnNavInfo.addEventListener('click', () => {
+        btnNavInfo.classList.add('active');
+        btnNavList.classList.remove('active');
+        btnNavMap.classList.remove('active');
+        viewWeddingInfo.style.display = 'block';
+        viewListManage.style.display = 'none';
+        viewVenueLayout.style.display = 'none';
+        renderWeddingInfoForm();
+    });
+
+    function renderWeddingInfoForm() {
+        document.getElementById('infoGroomName').value = weddingInfo.groomName || '';
+        document.getElementById('infoBrideName').value = weddingInfo.brideName || '';
+        document.getElementById('infoWeddingDate').value = weddingInfo.weddingDate || '';
+        document.getElementById('infoWeddingTimeDesc').value = weddingInfo.weddingTimeDesc || '';
+        document.getElementById('infoVenueName').value = weddingInfo.venueName || '';
+        document.getElementById('infoVenueHall').value = weddingInfo.venueHall || '';
+        document.getElementById('infoVenueAddress').value = weddingInfo.venueAddress || '';
+        document.getElementById('infoGoogleMapsUrl').value = weddingInfo.googleMapsUrl || '';
+        // 飯店地圖：如果已上傳 base64，顯示提示；否則顯示原本網址
+        if (hotelMapData && hotelMapData.startsWith('data:')) {
+            document.getElementById('infoHotelMapUrl').value = '已上傳圖片（可重新選擇替換）';
+        } else {
+            document.getElementById('infoHotelMapUrl').value = weddingInfo.hotelMapUrl || '';
+        }
+        document.getElementById('infoParkingInfo').value = weddingInfo.parkingInfo || '';
+    }
+
+    document.getElementById('btnSaveWeddingInfo').addEventListener('click', () => {
+        weddingInfo.groomName = document.getElementById('infoGroomName').value;
+        weddingInfo.brideName = document.getElementById('infoBrideName').value;
+        weddingInfo.weddingDate = document.getElementById('infoWeddingDate').value;
+        weddingInfo.weddingTimeDesc = document.getElementById('infoWeddingTimeDesc').value;
+        weddingInfo.venueName = document.getElementById('infoVenueName').value;
+        weddingInfo.venueHall = document.getElementById('infoVenueHall').value;
+        weddingInfo.venueAddress = document.getElementById('infoVenueAddress').value;
+        weddingInfo.googleMapsUrl = document.getElementById('infoGoogleMapsUrl').value;
+        // 飯店地圖：只在使用者手動輸入網址時才更新，上傳圖片由 hotelMapData 獨立處理
+        const hotelMapInputVal = document.getElementById('infoHotelMapUrl').value;
+        if (hotelMapInputVal && !hotelMapInputVal.startsWith('已')) {
+            weddingInfo.hotelMapUrl = hotelMapInputVal;
+            hotelMapData = ''; // 改用網址，清除本地圖片
+            localStorage.removeItem('weddingHotelMap');
+        }
+        weddingInfo.parkingInfo = document.getElementById('infoParkingInfo').value;
+        saveData();
+        updateAdminUI();
+        alert('婚禮資訊已儲存！別忘了點擊左下角的「儲存並發佈」讓賓客看到更新喔！');
+    });
 
     btnNavList.addEventListener('click', () => {
         btnNavList.classList.add('active');
         btnNavMap.classList.remove('active');
+        btnNavInfo.classList.remove('active');
         viewListManage.style.display = 'block';
         viewVenueLayout.style.display = 'none';
+        viewWeddingInfo.style.display = 'none';
         renderTablesList(); // refresh
-    });
-
-    btnNavMap.addEventListener('click', () => {
-        btnNavMap.classList.add('active');
-        btnNavList.classList.remove('active');
-        viewVenueLayout.style.display = 'block';
-        viewListManage.style.display = 'none';
-        renderMapEditor();
     });
 
     subBtnGuestList.addEventListener('click', () => {
@@ -163,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCancelGuest = document.getElementById('btnCancelGuest');
     const btnSubmitGuest = document.getElementById('btnSubmitGuest');
     const addGuestName = document.getElementById('addGuestName');
+    const addGuestPhone = document.getElementById('addGuestPhone');
     const addGuestCategory = document.getElementById('addGuestCategory');
     const addGuestBaby = document.getElementById('addGuestBaby');
     const guestTableTbody = document.querySelector('#guestTable tbody');
@@ -173,21 +290,68 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentConfigSlotFilter = 'ALL';
 
     const btnManageCategories = document.getElementById('btnManageCategories');
+    const categoryModal = document.getElementById('categoryModal');
+    const closeCategoryModal = document.getElementById('btnCloseCategoryModal');
+    const categoryTagList = document.getElementById('categoryTagList');
+    const newCategoryInput = document.getElementById('newCategoryInput');
+    const btnAddCategory = document.getElementById('btnAddCategory');
+    const btnSaveCategories = document.getElementById('btnSaveCategories');
+    
+    let tempCategories = [...categories];
+
     if(btnManageCategories) {
         btnManageCategories.addEventListener('click', () => {
-            let currentList = categories.join(', ');
-            let input = prompt(`目前有的分類：\n${currentList}\n\n請輸入您要使用的所有分類 (請以半形逗點 , 分隔)：`, currentList);
-            if(input !== null) {
-                let newCats = input.split(',').map(s => s.trim()).filter(s => s);
-                if(newCats.length > 0) {
-                    if(!newCats.includes('未分類')) newCats.push('未分類');
-                    categories = newCats;
-                    localStorage.setItem('weddingCategories', JSON.stringify(categories));
-                    renderCategorySelects();
-                    renderGuests();
-                    alert('分類設定已儲存！');
-                }
+            tempCategories = [...categories];
+            renderCategoryTags();
+            categoryModal.style.display = 'flex';
+        });
+    }
+
+    if(closeCategoryModal) {
+        closeCategoryModal.addEventListener('click', () => categoryModal.style.display = 'none');
+    }
+
+    function renderCategoryTags() {
+        if(!categoryTagList) return;
+        categoryTagList.innerHTML = tempCategories.map((c, i) => `
+            <div class="category-tag-item" style="display:flex; align-items:center; gap:0.5rem; background:#fff; border:1px solid var(--border-dark); padding:0.4rem 0.8rem; border-radius:50px; font-size:0.9rem; font-weight:600; color:var(--text-main);">
+                <span>${c}</span>
+                ${c !== '未分類' ? `<span onclick="removeTempCategory(${i})" style="cursor:pointer; color:var(--primary); font-size:1.1rem; line-height:1;">×</span>` : ''}
+            </div>
+        `).join('');
+    }
+
+    window.removeTempCategory = (idx) => {
+        tempCategories.splice(idx, 1);
+        renderCategoryTags();
+    };
+
+    if(btnAddCategory) {
+        btnAddCategory.addEventListener('click', () => {
+            const val = newCategoryInput.value.trim();
+            if(val && !tempCategories.includes(val)) {
+                tempCategories.push(val);
+                newCategoryInput.value = '';
+                renderCategoryTags();
             }
+        });
+    }
+
+    if(newCategoryInput) {
+        newCategoryInput.addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') btnAddCategory.click();
+        });
+    }
+
+    if(btnSaveCategories) {
+        btnSaveCategories.addEventListener('click', () => {
+            if(!tempCategories.includes('未分類')) tempCategories.push('未分類');
+            categories = [...tempCategories];
+            localStorage.setItem('weddingCategories', JSON.stringify(categories));
+            renderCategorySelects();
+            renderGuests();
+            categoryModal.style.display = 'none';
+            alert('分類設定已儲存！');
         });
     }
 
@@ -207,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCancelGuest.addEventListener('click', () => {
         addGuestForm.style.display = 'none';
         addGuestName.value = '';
+        if (addGuestPhone) addGuestPhone.value = '';
         addGuestCategory.value = '';
         addGuestBaby.checked = false;
         document.querySelector('input[name="addGuestDiet"][value="葷食"]').checked = true;
@@ -214,11 +379,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnSubmitGuest.addEventListener('click', () => {
         const n = addGuestName.value.trim();
+        const p = addGuestPhone ? addGuestPhone.value.trim() : '';
         if(!n) return alert('請輸入姓名');
         
         guests.push({
             id: 'g_' + Date.now(),
             name: n,
+            phone: p,
             category: addGuestCategory.value.trim() || '未分類',
             diet: document.querySelector('input[name="addGuestDiet"]:checked').value,
             babySeat: addGuestBaby.checked,
@@ -229,6 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderGuests();
         addGuestForm.style.display = 'none';
         addGuestName.value = '';
+        if (addGuestPhone) addGuestPhone.value = '';
         addGuestCategory.value = '';
         addGuestBaby.checked = false;
         document.querySelector('input[name="addGuestDiet"][value="葷食"]').checked = true;
@@ -321,9 +489,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const unseatedGuests = totalGuests - seatedGuests;
         
         guestStatsBar.innerHTML = `
-            <div>📝 總賓客人數：<span style="color:var(--primary); font-size:1.3rem; margin:0 0.3rem;">${totalGuests}</span> 人</div>
-            <div>✅ 已安排座位：<span style="color:#2e7d32; font-size:1.3rem; margin:0 0.3rem;">${seatedGuests}</span> 人</div>
-            <div style="${unseatedGuests > 0 ? 'color:var(--danger); border-bottom: 2px solid var(--danger);' : ''}">⚠️ 尚未安排座位：<span style="font-size:1.3rem; margin:0 0.3rem;">${unseatedGuests}</span> 人</div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(223, 90, 119, 0.1); color: var(--primary);">📝</div>
+                <div class="stat-info">
+                    <div class="label">總賓客人數</div>
+                    <div class="value">${totalGuests}</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(46, 125, 50, 0.1); color: #2e7d32;">✅</div>
+                <div class="stat-info">
+                    <div class="label">已安排座位</div>
+                    <div class="value">${seatedGuests}</div>
+                </div>
+            </div>
+            <div class="stat-card" style="${unseatedGuests > 0 ? 'border: 1px solid var(--primary); background: #fdf0f2;' : ''}">
+                <div class="stat-icon" style="background: ${unseatedGuests > 0 ? 'var(--primary)' : 'rgba(180, 83, 9, 0.1)'}; color: ${unseatedGuests > 0 ? '#white' : '#b45309'};">⚠️</div>
+                <div class="stat-info">
+                    <div class="label">尚未安排</div>
+                    <div class="value" style="${unseatedGuests > 0 ? 'color: var(--primary);' : ''}">${unseatedGuests}</div>
+                </div>
+            </div>
         `;
 
         guestTableTbody.innerHTML = '';
@@ -339,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(!groupedTables[cat]) groupedTables[cat] = [];
                 groupedTables[cat].push(tbl);
             });
-            let tableOptionsHtml = '<option value="">-- 尚未分配 --</option>';
+            let tableOptionsHtml = '<option value="">尚未安排座位</option>';
             Object.keys(groupedTables).forEach(cat => {
                 tableOptionsHtml += `<optgroup label="${cat}">`;
                 groupedTables[cat].forEach(tbl => {
@@ -355,7 +541,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <input type="text" value="${g.name}" onchange="updateGuest('${g.id}', 'name', this)" style="width:120px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:1rem; color:var(--text-main); font-weight:500;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
+                    <input type="text" value="${g.name}" onchange="updateGuest('${g.id}', 'name', this)" style="width:100px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:1rem; color:var(--text-main); font-weight:500;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
+                </td>
+                <td>
+                    <input type="text" value="${g.phone || ''}" placeholder="09..." onchange="updateGuest('${g.id}', 'phone', this)" style="width:100px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main);" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
                 </td>
                 <td>
                     <select onchange="updateGuest('${g.id}', 'category', this)" style="width:110px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:600;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
@@ -674,54 +863,110 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 selectWrapper.appendChild(filledDiv);
             } else {
-                const select = document.createElement('select');
-                select.className = 'slot-select';
-                select.style.width = '100%';
-                select.innerHTML = `<option value="">搜尋嘉賓...</option>`;
+                const searchWrapper = document.createElement('div');
+                searchWrapper.style.position = 'relative';
+                searchWrapper.style.width = '100%';
                 
-                // Group unassigned guests by category
-                let unassignedGuests = guests.filter(g => !g.table);
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = '🔍 點擊搜尋 / 選擇嘉賓';
+                searchInput.style.width = '100%';
+                searchInput.style.border = 'none';
+                searchInput.style.background = 'transparent';
+                searchInput.style.outline = 'none';
+                searchInput.style.textAlign = 'center';
+                searchInput.style.color = 'var(--text-muted)';
+                searchInput.style.fontSize = '0.9rem';
+                searchInput.style.padding = '0.2rem 0';
                 
-                // Apply the configSlot filter!
+                const dropdown = document.createElement('div');
+                dropdown.style.display = 'none';
+                dropdown.style.position = 'absolute';
+                dropdown.style.top = '100%';
+                dropdown.style.left = '0';
+                dropdown.style.right = '0';
+                dropdown.style.maxHeight = '220px';
+                dropdown.style.overflowY = 'auto';
+                dropdown.style.background = '#fff';
+                dropdown.style.border = '1px solid var(--border-dark)';
+                dropdown.style.borderRadius = '12px';
+                dropdown.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                dropdown.style.zIndex = '100';
+                dropdown.style.textAlign = 'left';
+                dropdown.style.marginTop = '0.5rem';
+
+                let allEligibleGuests = guests; // 不再只過濾未入座的
                 if(currentConfigSlotFilter !== 'ALL') {
-                    unassignedGuests = unassignedGuests.filter(g => (g.category || '未分類') === currentConfigSlotFilter);
+                    allEligibleGuests = allEligibleGuests.filter(g => (g.category || '未分類') === currentConfigSlotFilter);
                 }
 
-                let grouped = {};
-                unassignedGuests.forEach(g => {
-                    let cat = g.category || '未分類';
-                    if(!grouped[cat]) grouped[cat] = [];
-                    grouped[cat].push(g);
-                });
-                
-                Object.keys(grouped).forEach(cat => {
-                    const optgroup = document.createElement('optgroup');
-                    optgroup.label = cat;
-                    grouped[cat].forEach(g => {
-                        let text = g.name;
-                        if(g.babySeat) text += ' (👶)';
-                        const opt = document.createElement('option');
-                        opt.value = g.id;
-                        opt.textContent = text;
-                        optgroup.appendChild(opt);
+                function renderDropdownList(filterText = '') {
+                    dropdown.innerHTML = '';
+                    let filtered = allEligibleGuests;
+                    if(filterText) {
+                        const ft = filterText.toLowerCase();
+                        filtered = allEligibleGuests.filter(g => g.name.toLowerCase().includes(ft) || (g.category || '').toLowerCase().includes(ft));
+                    }
+                    if(filtered.length === 0) {
+                        dropdown.innerHTML = '<div style="padding:0.8rem; color:#999; text-align:center; font-size:0.85rem;">找不到結果</div>';
+                        return;
+                    }
+                    filtered.forEach(g => {
+                        const item = document.createElement('div');
+                        item.style.padding = '0.6rem 1rem';
+                        item.style.cursor = 'pointer';
+                        item.style.borderBottom = '1px solid #f9f9f9';
+                        item.style.fontSize = '0.9rem';
+                        item.style.display = 'flex';
+                        item.style.alignItems = 'center';
+                        item.style.justifyContent = 'space-between';
+                        
+                        let leftHtml = `<div style="display:flex; align-items:center; gap:0.5rem;"><span style="font-weight:700; color:var(--text-main);">${g.name}</span>`;
+                        if(g.babySeat) leftHtml += `<span title="嬰兒座椅" style="font-size:0.9rem;">👶</span>`;
+                        leftHtml += `</div>`;
+                        
+                        let rightHtml = `<div style="display:flex; align-items:center; gap:0.4rem;">`;
+                        if(g.table) {
+                            const tInfo = tables.find(t => t.id === g.table);
+                            if(tInfo) rightHtml += `<span style="font-size:0.75rem; color:#d05035; background:#ffebee; padding:0.2rem 0.5rem; border-radius:10px; font-weight:600;">已在 ${tInfo.name}</span>`;
+                        }
+                        rightHtml += `<span style="font-size:0.75rem; color:#777; background:#f4f6fa; padding:0.2rem 0.5rem; border-radius:10px;">${g.category||'未分類'}</span></div>`;
+                        
+                        item.innerHTML = `${leftHtml}${rightHtml}`;
+                        
+                        item.addEventListener('mouseover', () => item.style.background = '#fdf0f2');
+                        item.addEventListener('mouseout', () => item.style.background = '#fff');
+                        item.addEventListener('mousedown', (e) => { // mousedown prevents blur from firing first
+                            e.preventDefault();
+                            g.table = tbl.id;
+                            g.seat = String(i);
+                            saveData();
+                            renderTableConfig(tid);
+                            renderTablesList();
+                        });
+                        dropdown.appendChild(item);
                     });
-                    select.appendChild(optgroup);
+                }
+
+                searchInput.addEventListener('focus', () => {
+                    searchInput.style.color = 'var(--primary)';
+                    searchInput.style.borderBottom = '1px solid var(--primary)';
+                    renderDropdownList(searchInput.value);
+                    dropdown.style.display = 'block';
+                });
+                searchInput.addEventListener('blur', () => {
+                    searchInput.style.color = 'var(--text-muted)';
+                    searchInput.style.borderBottom = 'none';
+                    searchInput.value = ''; // Reset input on blur
+                    dropdown.style.display = 'none';
+                });
+                searchInput.addEventListener('input', (e) => {
+                    renderDropdownList(e.target.value);
                 });
 
-                select.addEventListener('change', (e) => {
-                    const newGuestId = e.target.value;
-                    if(newGuestId) {
-                        const ng = guests.find(g => g.id === newGuestId);
-                        if(ng) {
-                            ng.table = tbl.id;
-                            ng.seat = String(i);
-                        }
-                        saveData();
-                        renderTableConfig(tid);
-                        renderTablesList();
-                    }
-                });
-                selectWrapper.appendChild(select);
+                searchWrapper.appendChild(searchInput);
+                searchWrapper.appendChild(dropdown);
+                selectWrapper.appendChild(searchWrapper);
             }
             
             slot.appendChild(selectWrapper);
@@ -1167,7 +1412,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     btnSaveMap.addEventListener('click', () => {
-        mapUrl = mapUrlInput.value.trim();
+        const inputVal = mapUrlInput.value.trim();
+        if (inputVal !== '已從電腦上傳圖片') {
+            mapUrl = inputVal;
+        }
         saveData();
         renderMapEditor();
         alert('地圖更新成功');
@@ -1178,28 +1426,91 @@ document.addEventListener('DOMContentLoaded', () => {
             mapUploadInput.click();
         });
         
+        // 場地佈局圖上傳
+        const btnUploadLayout = document.getElementById('btnUploadLayout');
+        const fileInputLayout = document.getElementById('fileInputLayout');
+        if(btnUploadLayout && fileInputLayout) {
+            btnUploadLayout.addEventListener('click', () => fileInputLayout.click());
+            fileInputLayout.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if(!file) return;
+                if (file.size > 3 * 1024 * 1024) {
+                    alert('圖片太大囉！請上傳 3MB 以下的圖片。');
+                    fileInputLayout.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    mapUrl = evt.target.result;
+                    mapUrlInput.value = '已從電腦上傳圖片';
+                    saveData();
+                    renderMapEditor();
+                    alert('場地佈局圖上傳成功！');
+                };
+                reader.readAsDataURL(file);
+                fileInputLayout.value = '';
+            });
+        }
+        
+        // 舊的上傳邏輯 (相容性)
         mapUploadInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if(!file) return;
-            // 限制檔案大小不超過 3MB 以免 localStorage 被塞爆
             if (file.size > 3 * 1024 * 1024) {
                 alert('圖片太大囉！請上傳 3MB 以下的圖片。');
                 mapUploadInput.value = '';
                 return;
             }
-            
             const reader = new FileReader();
             reader.onload = (evt) => {
-                mapUrl = evt.target.result; // Data URL
+                mapUrl = evt.target.result;
                 mapUrlInput.value = '已從電腦上傳圖片';
                 saveData();
                 renderMapEditor();
-                alert('圖片上傳並套用成功！');
+                alert('圖片上傳成功！');
             };
             reader.readAsDataURL(file);
-            mapUploadInput.value = ''; // reset
+            mapUploadInput.value = '';
         });
     }
+
+    // 飯店位置示意圖上傳
+    const btnUploadHotelMap = document.getElementById('btnUploadHotelMap');
+    const fileInputHotelMap = document.getElementById('fileInputHotelMap');
+    const infoHotelMapUrl = document.getElementById('infoHotelMapUrl');
+    if(btnUploadHotelMap && fileInputHotelMap) {
+        btnUploadHotelMap.addEventListener('click', () => fileInputHotelMap.click());
+        fileInputHotelMap.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            if (file.size > 3 * 1024 * 1024) {
+                alert('圖片太大囉！請上傳 3MB 以下的圖片。');
+                fileInputHotelMap.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                hotelMapData = evt.target.result;
+                infoHotelMapUrl.value = '已上傳圖片（可重新選擇替換）';
+                try {
+                    localStorage.setItem('weddingHotelMap', hotelMapData);
+                    alert('飯店位置示意圖上傳成功！');
+                } catch(e) {
+                    alert('⚠️ 圖片太大，儲存失敗！請壓縮圖片到 500KB 以下再重新上傳。');
+                    hotelMapData = '';
+                }
+            };
+            reader.readAsDataURL(file);
+            fileInputHotelMap.value = '';
+        });
+    }
+
+    function updateAdminUI() {
+        if(document.getElementById('adminHeaderNames')) {
+            document.getElementById('adminHeaderNames').textContent = `${weddingInfo.groomName} ♡ ${weddingInfo.brideName}`;
+        }
+    }
+    updateAdminUI();
 
     function makeDraggable(element, tRecord) {
         const snapGuideX = document.getElementById('snapGuideX');

@@ -11,7 +11,17 @@ let weddingData = {
     mainTableSize: 110,
     guestTableSize: 90,
     editorWidth: 800,
-    editorHeight: 800
+    editorHeight: 800,
+    weddingInfo: {
+        groomName: "莊勛凱",
+        brideName: "楊恩懿",
+        weddingDate: "2026-10-25",
+        weddingTimeDesc: "17:30 迎賓入席 ｜ 18:30 晚宴開席",
+        venueName: "茹曦酒店 ILLUME TAIPEI",
+        venueHall: "5F 斯賓諾莎廳",
+        venueAddress: "台北市松山區敦化北路100號",
+        parkingInfo: "賓客免費停車\n請利用茹曦酒店停車場，因車位有限，停滿為止\n⚠️ 提醒：車位限高 1.75 米"
+    }
 };
 let isDataLoaded = false;
 
@@ -68,8 +78,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // 儲存雲端傳回的正確地圖比例至本地
                 if (data.weddingMapAspectW) localStorage.setItem('weddingMapAspectW', data.weddingMapAspectW);
                 if (data.weddingMapAspectH) localStorage.setItem('weddingMapAspectH', data.weddingMapAspectH);
+                if (data.weddingInfo) {
+                    weddingData.weddingInfo = JSON.parse(data.weddingInfo);
+                } else {
+                    const storedInfo = localStorage.getItem('weddingInfo');
+                    if (storedInfo) weddingData.weddingInfo = JSON.parse(storedInfo);
+                }
+                weddingData.hotelMapData = data.weddingHotelMap || '';
                 
                 isDataLoaded = true;
+                updateWeddingUI();
             } else {
                 fallbackToLocal();
             }
@@ -97,8 +115,89 @@ document.addEventListener('DOMContentLoaded', async () => {
         weddingData.guestTableSize = parseInt(localStorage.getItem('weddingGuestTableSize')) || 90;
         weddingData.editorWidth = parseInt(localStorage.getItem('weddingEditorWidth')) || 800;
         weddingData.editorHeight = parseInt(localStorage.getItem('weddingEditorHeight')) || 800;
+        const storedInfo = localStorage.getItem('weddingInfo');
+        if (storedInfo) weddingData.weddingInfo = JSON.parse(storedInfo);
         isDataLoaded = true;
+        updateWeddingUI();
     }
+
+    function updateWeddingUI() {
+        const info = weddingData.weddingInfo;
+        if (!info) return;
+
+        // Update titles and names
+        const names = `${info.groomName} ♡ ${info.brideName}`;
+        if (document.getElementById('pageTitle')) document.getElementById('pageTitle').textContent = `${names} 婚禮座位查詢`;
+        if (document.getElementById('envelopeNames')) document.getElementById('envelopeNames').textContent = names;
+        
+        // Update meta description
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) {
+            metaDesc.setAttribute('content', `${info.groomName}與${info.brideName}的婚禮喜帖，查詢您的專屬座位。`);
+        }
+        if (document.getElementById('groomNameCard')) document.getElementById('groomNameCard').textContent = info.groomName;
+        if (document.getElementById('brideNameCard')) document.getElementById('brideNameCard').textContent = info.brideName;
+
+        // Update Card Info
+        if (document.getElementById('weddingDateCard')) {
+            const d = info.weddingDate.replace(/-/g, ' · ');
+            document.getElementById('weddingDateCard').textContent = d;
+        }
+        if (document.getElementById('venueNameCard')) document.getElementById('venueNameCard').textContent = info.venueName;
+        if (document.getElementById('venueHallCard')) document.getElementById('venueHallCard').textContent = info.venueHall;
+
+        // Update Detail Modal
+        if (document.getElementById('weddingDateDetail')) {
+            const d = new Date(info.weddingDate);
+            const days = ['日', '一', '二', '三', '四', '五', '六'];
+            const dateStr = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日（星期${days[d.getDay()]}）`;
+            document.getElementById('weddingDateDetail').textContent = dateStr;
+        }
+        if (document.getElementById('weddingTimeDetail')) document.getElementById('weddingTimeDetail').textContent = info.weddingTimeDesc;
+        if (document.getElementById('venueNameDetail')) document.getElementById('venueNameDetail').textContent = info.venueName;
+        if (document.getElementById('venueHallDetail')) document.getElementById('venueHallDetail').textContent = info.venueHall;
+        if (document.getElementById('venueAddressDetail')) document.getElementById('venueAddressDetail').textContent = info.venueAddress;
+        if (document.getElementById('btnGoogleMaps')) document.getElementById('btnGoogleMaps').href = info.googleMapsUrl || '#';
+        // 飯店地圖：優先用獨立儲存的 base64 圖片，否則用 weddingInfo 裡的網址
+        if (document.getElementById('hotelMapImage')) {
+            const cloudHotelMap = weddingData.hotelMapData || '';
+            const localHotelMap = localStorage.getItem('weddingHotelMap') || '';
+            const finalSrc = cloudHotelMap || localHotelMap || info.hotelMapUrl || '';
+            document.getElementById('hotelMapImage').src = finalSrc;
+        }
+        if (document.getElementById('parkingInfoDetail')) {
+            document.getElementById('parkingInfoDetail').innerHTML = info.parkingInfo.replace(/\n/g, '<br>');
+        }
+    }
+
+    // 更新倒數計時器邏輯
+    window.updateCountdown = function() {
+        const info = weddingData.weddingInfo;
+        if (!info || !info.weddingDate) return;
+        
+        const targetDate = new Date(info.weddingDate + 'T00:00:00').getTime();
+        const diff = targetDate - Date.now();
+        
+        if (diff <= 0) { 
+            ['cd-days','cd-hours','cd-mins'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '00';
+            }); 
+            return; 
+        }
+        
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor(diff % 86400000 / 3600000);
+        const m = Math.floor(diff % 3600000 / 60000);
+        
+        if (document.getElementById('cd-days')) document.getElementById('cd-days').textContent = String(d).padStart(2,'0');
+        if (document.getElementById('cd-hours')) document.getElementById('cd-hours').textContent = String(h).padStart(2,'0');
+        if (document.getElementById('cd-mins')) document.getElementById('cd-mins').textContent = String(m).padStart(2,'0');
+    };
+    
+    // 每分鐘更新一次即可，不需每秒
+    setInterval(window.updateCountdown, 60000);
+    window.updateCountdown();
 
     // 背景載入資料（不阻塞事件綁定）
     loadDataFromCloud();
@@ -245,13 +344,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const name = guestNameInput.value.trim();
+        const searchErrorHint = document.getElementById('searchErrorHint');
+        if (searchErrorHint) searchErrorHint.style.display = 'none';
+
         if (!name) {
-            alert('請輸入姓名');
+            if (searchErrorHint) {
+                searchErrorHint.textContent = '⚠️ 請輸入您的姓名或電話末3碼';
+                searchErrorHint.style.display = 'block';
+            }
+            return;
+        }
+        const data = weddingData;
+        
+        // 搜尋邏輯：完全符合姓名，或是電話末端符合輸入的數字
+        const matchedGuests = data.guests.filter(g => 
+            g.name === name || 
+            (g.phone && g.phone.endsWith(name))
+        );
+
+        if (matchedGuests.length > 1) {
+            if (searchErrorHint) {
+                searchErrorHint.textContent = '❌ 找到多筆相符資料，請改輸入「完整姓名」查詢';
+                searchErrorHint.style.display = 'block';
+            }
             return;
         }
 
-        const data = weddingData;
-        const guest = data.guests.find(g => g.name === name);
+        const guest = matchedGuests[0];
 
         if (guest) {
             resName.textContent = guest.name;
@@ -278,6 +397,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 resDietWrapper.style.display = 'none';
             }
 
+            const searchModal = document.getElementById('searchModal');
+            if (searchModal) searchModal.style.display = 'none';
+
             resultModal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
 
@@ -288,16 +410,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // 先隱藏結果層
                     resultModal.style.display = 'none';
                     renderMap(data, guest);
-                    mapModal.style.display = 'block';
+                    mapModal.style.display = 'flex';
                     document.body.style.overflow = 'hidden';
                 };
             } else {
                 btnOpenMap.style.display = 'none';
             }
         } else {
-            alert('找不到您的名字，請確認是否輸入錯誤。');
-            resultModal.style.display = 'none';
-            btnOpenMap.style.display = 'none';
+            const searchErrorHint = document.getElementById('searchErrorHint');
+            if (searchErrorHint) {
+                searchErrorHint.textContent = '❌ 找不到相符資料，請確認是否輸入正確';
+                searchErrorHint.style.display = 'block';
+            }
         }
     });
 
@@ -349,7 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (btnShowVenue && venueInfoModal && btnCloseVenueModal) {
         btnShowVenue.addEventListener('click', () => {
-            venueInfoModal.style.display = 'block';
+            venueInfoModal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         });
 

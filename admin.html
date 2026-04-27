@@ -3,173 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>婚禮座位後台系統</title>
+    <title>婚禮座位後台系統 | 管理儀表板</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- SheetJS for Excel Import -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 </head>
-<body>
-    <!-- Top Navigation -->
-    <div class="top-nav">
-        <button class="top-nav-btn active" id="btnNavList">名單管理</button>
-        <button class="top-nav-btn" id="btnNavMap">場地佈局</button>
-        <div style="flex: 1;"></div>
-        <button class="btn-primary" id="btnPublish" style="font-weight: bold; background: linear-gradient(135deg, var(--amber-700), var(--amber-800)); box-shadow: 0 4px 15px rgba(180,83,9,0.3); border: none; padding: 0.8rem 1.5rem; border-radius: 8px; color: white; cursor: pointer; transition: transform 0.2s;">
-            🚀 儲存並發佈到雲端
-        </button>
+<body class="admin-body">
+    <!-- Category Management Modal -->
+    <div id="categoryModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box" style="max-width: 450px; border-radius: 28px;">
+            <div class="modal-header" style="background: white; border-bottom: 1px solid #f0f0f0;">
+                <span class="modal-title" style="font-weight: 700; color: var(--sidebar-bg); letter-spacing: 1px;">⚙️ 管理預設分類</span>
+                <button id="btnCloseCategoryModal" class="modal-close">✕</button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">新增或刪除嘉賓清單中的預設標籤</p>
+                <!-- Category List -->
+                <div id="categoryTagList" style="display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 2rem; min-height: 100px; align-content: flex-start;">
+                    <!-- Tags injected by JS -->
+                </div>
+                <div style="display: flex; gap: 0.6rem; background: #f8f9fa; padding: 1rem; border-radius: 16px;">
+                    <input type="text" id="newCategoryInput" placeholder="新分類名稱" style="flex: 1; border-radius: 10px; padding: 0.6rem 1rem; border:1px solid #ddd;">
+                    <button class="btn-primary" id="btnAddCategory" style="padding: 0.6rem 1rem; border-radius: 10px;">新增</button>
+                </div>
+                <div style="border-top: 1px solid #f0f0f0; margin-top: 2rem; padding-top: 1.5rem; text-align: right;">
+                    <button class="btn-primary" id="btnSaveCategories" style="width: 100%; justify-content: center; border-radius: 12px; font-weight: 700;">確定完成</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Custom Login Modal -->
+    <div id="adminLoginOverlay" class="admin-login-overlay">
+        <div class="login-modal">
+            <div class="login-xi">囍</div>
+            <div class="login-title">後台管理系統</div>
+            <div class="login-input-group">
+                <input type="password" id="adminPasswordInput" class="login-input" placeholder="管理密碼">
+            </div>
+            <button id="btnLoginSubmit" class="login-btn-enter">進入後台</button>
+            <br>
+            <a href="index.html" class="login-cancel">取消</a>
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar" style="display:none;"> <!-- Hidden until login -->
+        <div class="sidebar-header">
+            <div class="sidebar-title">婚禮管理系統</div>
+            <div id="adminHeaderNames" style="font-size: 0.8rem; opacity: 0.6; margin-top: 0.5rem;">莊勛凱 ♡ 楊恩懿</div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <button class="sidebar-btn active" id="btnNavList">
+                <span>📋</span> 名單管理
+            </button>
+            <button class="sidebar-btn" id="btnNavMap">
+                <span>🗺️</span> 場地佈局
+            </button>
+            <button class="sidebar-btn" id="btnNavInfo">
+                <span>✨</span> 婚禮資訊
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="btn-outline" id="btnChangePassword" style="width: 100%; margin-bottom: 1rem; color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.3); background: transparent; transition: 0.2s;" onmouseover="this.style.color='#fff'; this.style.borderColor='#fff';" onmouseout="this.style.color='rgba(255,255,255,0.8)'; this.style.borderColor='rgba(255,255,255,0.3)';">
+                🔑 修改密碼
+            </button>
+            <button class="btn-primary" id="btnPublish" style="width: 100%; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--primary-hover)); border: none; box-shadow: 0 4px 15px rgba(223,90,119,0.3);">
+                🚀 儲存並發佈
+            </button>
+        </div>
+    </aside>
+
     <!-- Main Content Area -->
-    <div class="main-content">
+    <main class="admin-main" style="display:none;"> <!-- Hidden until login -->
         <!-- 名單管理版面 -->
         <div id="viewListManage">
-            <div class="sub-toolbar">
+            <div class="sub-toolbar" style="margin-bottom: 2.5rem;">
                 <div class="sub-tabs">
-                    <button class="sub-tab-btn" id="subBtnTableGraphics">桌次圖形</button>
                     <button class="sub-tab-btn active" id="subBtnGuestList">嘉賓清單</button>
+                    <button class="sub-tab-btn" id="subBtnTableGraphics">分桌管理</button>
                 </div>
                 
                 <div id="toolbarGuest" style="display:flex; gap:1rem; align-items:center;">
-                    <!-- Filter Dropdown -->
-                    <select id="filterGuestCategory" style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-dark); outline: none; background:#fff; font-weight:600; color:var(--text-main);">
-                        <option value="ALL">所有嘉賓</option>
-                    </select>
-                    <button class="btn-outline" id="btnManageCategories" style="padding: 0.6rem; font-size: 0.9rem;" title="自訂與編輯分類選項">⚙️ 管理分類選項</button>
-                    <label style="cursor:pointer; display:flex; align-items:center; gap:0.4rem; font-size:0.95rem; font-weight:bold; color:var(--danger); background:#fdf0f2; padding:0.4rem 0.8rem; border-radius:8px; border:1px solid rgba(223, 90, 119, 0.3);">
-                        <input type="checkbox" id="filterUnseatedOnly"> 只顯示未安排座位的貴賓
+                    <select id="filterGuestCategory" style="padding: 0.6rem 1rem; border-radius: 12px; border: 1px solid var(--border-dark); outline: none; background:#fff; font-weight:600; color:var(--text-main);"></select>
+                    <button class="btn-outline" id="btnManageCategories" style="padding: 0.6rem 1rem; font-size: 0.9rem; border-radius: 12px;" title="管理分類選項">⚙️ 分類</button>
+                    <label style="cursor:pointer; display:flex; align-items:center; gap:0.5rem; font-size:0.9rem; font-weight:bold; color:var(--primary); background:#fdf0f2; padding:0.5rem 1rem; border-radius:12px; border:1px solid rgba(223, 90, 119, 0.2);">
+                        <input type="checkbox" id="filterUnseatedOnly"> 只顯示尚未安排
                     </label>
 
                     <div style="flex:1;"></div>
 
-                    <!-- Hidden file input for excel upload -->
                     <input type="file" id="excelUpload" accept=".xlsx, .xls" style="display: none;">
-                    <button class="btn-secondary" id="btnImportExcel">
-                        <span>📄</span> Excel 匯入
+                    <button class="btn-secondary" id="btnImportExcel" style="padding: 0.6rem 1.2rem; border-radius: 12px;">
+                        <span>📄</span> 匯入
                     </button>
-                    <button class="btn-primary" id="btnShowAddGuest">
-                        <span>＋</span> 新增貴賓
+                    <button class="btn-primary" id="btnShowAddGuest" style="padding: 0.6rem 1.2rem; border-radius: 12px;">
+                        <span>＋</span> 新增
                     </button>
                 </div>
+
                 <div id="toolbarTable" style="display:none; gap:1rem;">
-                    <button class="btn-primary" id="btnAddTable">
+                    <button class="btn-primary" id="btnAddTable" style="border-radius: 12px;">
                         <span>＋</span> 增加桌數
                     </button>
                 </div>
             </div>
 
             <!-- 嘉賓清單 View -->
-            <div id="viewGuestList" class="card">
-                <!-- Inline Add Guest Form (Hidden by default, toggled) -->
-                <div id="addGuestForm" style="display:none; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-light);">
-                    <div class="input-row" style="margin-bottom:0;">
-                        <input type="text" id="addGuestName" placeholder="來賓姓名" style="width: 150px;">
-                        <select id="addGuestCategory" style="width: 145px; padding: 0.3rem; border-radius: 4px; border: 1px solid var(--border-dark);"></select>
-                        <div style="display:flex; align-items:center; gap:0.8rem; margin-right:1rem;">
-                            <label style="cursor:pointer; font-size:0.9rem; font-weight:600;"><input type="radio" name="addGuestDiet" value="葷食" checked style="margin-right:0.2rem;"> 葷食</label>
-                            <label style="cursor:pointer; font-size:0.9rem; font-weight:600; color:#2e7d32;"><input type="radio" name="addGuestDiet" value="素食" style="margin-right:0.2rem;"> 素食</label>
-                        </div>
-                        <label style="color: var(--text-muted); font-size: 0.9rem;">
-                            <input type="checkbox" id="addGuestBaby" style="margin-right: 0.5rem;"> 需要嬰兒座椅
-                        </label>
-                        <button class="btn-primary" id="btnSubmitGuest" style="padding: 0.6rem 1rem;">儲存</button>
-                        <button class="btn-outline" id="btnCancelGuest" style="padding: 0.6rem 1rem;">取消</button>
-                    </div>
-                </div>
-                
-                <div id="guestStatsBar" style="background:#f8f9fc; border:1px solid var(--border-light); padding:1rem; border-radius:10px; margin-bottom:1rem; display:flex; gap:2rem; font-size:1rem; font-weight:600; align-items:center;">
-                    <!-- Auto updated by JS -->
+            <div id="viewGuestList">
+                <div id="guestStatsBar" class="stats-grid">
+                    <!-- Updated by JS to use .stat-card -->
                 </div>
 
-                <table id="guestTable">
-                    <thead>
-                        <tr>
-                            <th>來賓姓名</th>
-                            <th>嘉賓分類</th>
-                            <th>飲食習慣</th>
-                            <th>嬰兒座椅</th>
-                            <th>目前桌席</th>
-                            <th>座號</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- 動態生成 -->
-                    </tbody>
-                </table>
+                <!-- Add Guest Form (Hidden by default) -->
+                <div id="addGuestForm" class="glass-card" style="display:none; margin-bottom: 2rem;">
+                    <div class="input-row" style="margin-bottom:0; flex-wrap: wrap;">
+                        <input type="text" id="addGuestName" placeholder="來賓姓名" style="width: 120px;">
+                        <input type="text" id="addGuestPhone" placeholder="電話(選填)" style="width: 120px;">
+                        <select id="addGuestCategory" style="width: 130px;"></select>
+                        <div style="display:flex; align-items:center; gap:1rem; margin: 0 1rem;">
+                            <label style="cursor:pointer; font-size:0.9rem; font-weight:600;"><input type="radio" name="addGuestDiet" value="葷食" checked> 葷食</label>
+                            <label style="cursor:pointer; font-size:0.9rem; font-weight:600; color:#2e7d32;"><input type="radio" name="addGuestDiet" value="素食"> 素食</label>
+                        </div>
+                        <label style="color: var(--text-muted); font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <input type="checkbox" id="addGuestBaby"> 嬰兒座椅
+                        </label>
+                        <div style="flex: 1;"></div>
+                        <button class="btn-primary" id="btnSubmitGuest">儲存</button>
+                        <button class="btn-outline" id="btnCancelGuest">取消</button>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 0; overflow-y: auto; max-height: calc(100vh - 380px); border-radius: 20px; position: relative;">
+                    <table id="guestTable" class="modern-table">
+                        <thead style="position: sticky; top: 0; z-index: 10; background: #fdf0f2;">
+                            <tr>
+                                <th>來賓姓名</th>
+                                <th>電話(全碼)</th>
+                                <th>嘉賓分類</th>
+                                <th>飲食習慣</th>
+                                <th>嬰兒座椅</th>
+                                <th>目前桌席</th>
+                                <th>座號</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- 桌次圖形 View -->
             <div id="viewTableGraphics" style="display:none;">
                 <div class="map-settings-grid">
                     <!-- Left: Table Settings -->
-                    <div class="card" id="tableConfigCard" style="opacity: 0.5; pointer-events: none; position: sticky; top: 100px; max-height: calc(100vh - 150px); overflow-y: auto;">
-                        <div class="input-row" style="justify-content: space-between; border-bottom: 1px solid var(--border-light); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                    <div class="glass-card" id="tableConfigCard" style="opacity: 0.5; pointer-events: none; position: sticky; top: 0; max-height: calc(100vh - 100px); overflow-y: auto;">
+                        <div class="input-row" style="justify-content: space-between; border-bottom: 1px solid var(--border-light); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
                             <div>
-                                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.3rem;">桌次名稱</div>
-                                <div style="display:flex; align-items:center;">
-                                    <select id="configTableNameSelect" style="font-size:1.2rem; font-weight:600; border:none; padding:0; outline:none; background:transparent; color:inherit; cursor:pointer;">
-                                        <option value="自定義...">自定義桌名...</option>
-                                        <option value="主桌">主桌</option>
-                                        <option value="男方親友桌">男方親友桌</option>
-                                        <option value="女方親友桌">女方親友桌</option>
-                                        <option value="工作人員桌">工作人員桌</option>
-                                        <option value="預備桌">預備桌</option>
-                                    </select>
-                                    <input type="text" id="configTableNameInput" placeholder="輸入桌名" style="display:none; font-size:1rem; font-weight:600; border:1px solid var(--border-dark); padding:0.2rem 0.5rem; outline:none; border-radius:4px; margin-left:10px;">
-                                </div>
+                                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">桌次名稱</div>
+                                <select id="configTableNameSelect" style="font-size:1.1rem; font-weight:700; border:none; padding:0; outline:none; background:transparent; color:var(--primary); cursor:pointer;">
+                                    <option value="自定義...">自定義桌名...</option>
+                                    <option value="主桌">主桌</option>
+                                    <option value="男方親友桌">男方親友桌</option>
+                                    <option value="女方親友桌">女方親友桌</option>
+                                    <option value="工作人員桌">工作人員桌</option>
+                                    <option value="預備桌">預備桌</option>
+                                </select>
+                                <input type="text" id="configTableNameInput" style="display:none; margin-top:0.5rem; width:100%;">
                             </div>
-                            <div style="display:flex; gap:1rem;">
+                            <div style="display:flex; gap:1.5rem;">
                                 <div>
-                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.3rem;">類型</div>
-                                    <select id="configTableType" style="border:none; background:#fdf0f2; color:var(--primary); font-weight:600; padding:0.5rem; border-radius:6px;">
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">類型</div>
+                                    <select id="configTableType" style="border:none; background:#fdf0f2; color:var(--primary); font-weight:700; padding:0.4rem 0.8rem; border-radius:8px;">
                                         <option value="一般">一般</option>
                                         <option value="主桌">主桌</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.3rem;">座位</div>
-                                    <select id="configTableSeats" style="border:none; background:transparent; font-weight:600;">
-                                        <option value="10">10 人</option>
-                                        <option value="11">11 人</option>
-                                        <option value="12">12 人</option>
-                                        <option value="13">13 人</option>
-                                        <option value="14">14 人</option>
-                                        <option value="15">15 人</option>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.4rem;">座位</div>
+                                    <select id="configTableSeats" style="border:none; background:transparent; font-weight:700;">
+                                        <option value="10">10 人</option><option value="11">11 人</option>
+                                        <option value="12">12 人</option><option value="13">13 人</option>
+                                        <option value="14">14 人</option><option value="15">15 人</option>
                                         <option value="16">16 人</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Slots header / Filter -->
-                        <div style="margin-bottom:0.8rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f0f0f0; padding-bottom:0.8rem;">
-                            <div style="font-weight:bold; color:var(--text-main); font-size:0.9rem;">📍 座位安排</div>
-                            <select id="configSlotCategoryFilter" style="padding:0.4rem 0.6rem; border-radius:6px; font-size:0.85rem; font-weight:600; border:1px solid var(--border-dark); outline:none; background:#fff; cursor:pointer;" title="篩選下拉選單中的名單分類">
-                                <option value="ALL">顯示所有未入座嘉賓</option>
-                            </select>
+                        <div style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-weight:bold; color:var(--text-main);">📍 接待名冊</div>
+                            <select id="configSlotCategoryFilter" style="padding:0.4rem 0.8rem; border-radius:10px; font-size:0.85rem; border:1px solid var(--border-dark);"></select>
                         </div>
 
-                        <!-- Slots -->
-                        <div id="slotGrid" style="display:flex; flex-direction:column; gap:0.5rem;">
-                            <!-- Slots generated dynamically -->
-                        </div>
+                        <div id="slotGrid" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
 
-                        <div style="border-top: 1px dashed var(--border-light); padding-top: 1.5rem; text-align: center;">
-                            <button class="btn-outline" id="btnBackToMapFromConfig" style="width: 100%; justify-content:center; padding: 0.8rem; font-size: 1rem; border-color:var(--primary); color:var(--primary); background:#fdf0f2; font-weight: bold;">
-                                🗺️ 排位完成，返回地圖佈局
+                        <div style="border-top: 1px dashed var(--border-light); margin-top: 2rem; padding-top: 1.5rem;">
+                            <button class="btn-outline" id="btnBackToMapFromConfig" style="width: 100%; justify-content:center; border-color:var(--primary); color:var(--primary); font-weight: bold; border-radius: 12px;">
+                                🗺️ 確認排位，返回地圖
                             </button>
                         </div>
                     </div>
 
-                    <!-- Right: Add Table or Select Table -->
-                    <div id="tableSelectorArea" style="max-height: calc(100vh - 180px); overflow-y: auto; padding-right: 10px; position: sticky; top: 100px;">
-                        <div class="dashed-card" id="btnBigAddTable">
+                    <!-- Right: Table List -->
+                    <div id="tableSelectorArea" style="max-height: calc(100vh - 100px); overflow-y: auto;">
+                        <div class="dashed-card" id="btnBigAddTable" style="min-height: 200px; margin-bottom: 1.5rem;">
                             <div class="plus-circle">＋</div>
                             新增桌次
                         </div>
-                        <div id="tableListContainer" style="display:none; display:flex; flex-direction:column; gap:1rem;">
-                            <!-- List of small configured tables to click on -->
-                        </div>
+                        <div id="tableListContainer" style="display:flex; flex-direction:column; gap:1rem;"></div>
                     </div>
                 </div>
             </div>
@@ -177,78 +224,157 @@
 
         <!-- 場地佈局版面 -->
         <div id="viewVenueLayout" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 1rem;">
-                <h3 style="color:var(--text-main);">地圖縮影與位置拖曳</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                <h2 style="color:var(--sidebar-bg); font-weight: 700;">場地佈局設計</h2>
             </div>
             
-            <!-- 懸浮在右下角的快捷操作浮動按鈕區 -->
-            <div id="mapToolbar" style="position: fixed; bottom: 2rem; right: 2rem; display:flex; flex-direction: column; gap:1rem; z-index: 9999;">
-                <div style="background: white; border-radius: 20px; padding: 0.6rem; display: flex; flex-direction: column; align-items: stretch; gap: 0.6rem; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
-                    <select id="autoLayoutMode" style="border: 1px solid #fdf0f2; border-radius: 12px; padding: 0.5rem; outline: none; text-align: center; font-weight: bold; color: var(--primary); font-size: 0.9rem; cursor: pointer; background: #fff;">
-                        <option value="1">左右各 1 排走道</option>
-                        <option value="2" selected>左右各 2 排矩陣</option>
-                        <option value="3">左右各 3 排矩陣</option>
-                        <option value="4">左右各 4 排矩陣</option>
-                    </select>
-                    
-                    <!-- 桌距微調拉桿 -->
-                    <div style="background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 12px; padding: 0.6rem; margin: 0.2rem 0;">
-                        <label style="font-size: 0.75rem; color: #777; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                            <span>左右間距</span>
-                            <span id="labelGapX" style="color:var(--primary); font-weight:bold;">20px</span>
-                        </label>
-                        <input type="range" id="sliderGapX" min="95" max="250" value="110" style="width: 100%; cursor: pointer;">
-                        
-                        <label style="font-size: 0.75rem; color: #777; display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; margin-bottom: 0.3rem;">
-                            <span>上下間距</span>
-                            <span id="labelGapY" style="color:var(--primary); font-weight:bold;">15px</span>
-                        </label>
-                        <input type="range" id="sliderGapY" min="95" max="250" value="105" style="width: 100%; cursor: pointer;">
+            <div style="display:grid; grid-template-columns: 1fr 300px; gap: 2rem; align-items: start;">
+                <!-- Left: Map Editor -->
+                <div style="position: relative;">
+                    <div id="mapEditor" class="map-container" style="background:#fff; border: 2px dashed var(--border-dark); border-radius: 24px; box-shadow: inset 0 0 20px rgba(0,0,0,0.02); margin-top: 0;">
+                        <div class="map-stage">STAGE / 舞台</div>
+                        <div class="map-aisle">中央進場紅毯</div>
+                        <div id="snapGuideX" class="snap-guide-x"></div>
+                        <div id="snapGuideY" class="snap-guide-y"></div>
+                        <img id="adminMapImg" style="width:100%; height:100%; object-fit:fill; display:none; position:absolute; z-index:0;">
                     </div>
 
-                    <!-- 大小微調拉桿 -->
-                    <div style="background: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 12px; padding: 0.6rem; margin: 0.2rem 0;">
-                        <label style="font-size: 0.75rem; color: #777; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
-                            <span>主桌大小</span>
-                            <span id="labelSizeMain" style="color:var(--primary); font-weight:bold;">110px</span>
-                        </label>
-                        <input type="range" id="sliderSizeMain" min="50" max="200" value="110" style="width: 100%; cursor: pointer;">
-                        
-                        <label style="font-size: 0.75rem; color: #777; display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; margin-bottom: 0.3rem;">
-                            <span>客桌大小</span>
-                            <span id="labelSizeGuest" style="color:var(--primary); font-weight:bold;">90px</span>
-                        </label>
-                        <input type="range" id="sliderSizeGuest" min="50" max="150" value="90" style="width: 100%; cursor: pointer;">
+                    <div class="glass-card" style="margin-top: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem;">底圖網址或上傳</div>
+                            <div class="input-row" style="margin-bottom:0;">
+                                <input type="text" id="mapUrlInput" placeholder="https://..." style="flex:1;">
+                                <button class="btn-primary" id="btnSaveMap" style="padding: 0.6rem 1rem;">載入</button>
+                                <input type="file" id="mapUploadInput" accept="image/*" style="display: none;">
+                                <button type="button" class="btn-secondary" id="btnUploadMap" style="padding: 0.6rem 1rem;">上傳</button>
+                            </div>
+                        </div>
                     </div>
-
-                    <button class="btn-outline" id="btnMapUndo" style="padding: 0.6rem; border-radius: 12px; font-size: 0.9rem; font-weight: bold; background: #fff; cursor: not-allowed; transition: 0.2s; opacity: 0.5;" title="復原排版" disabled>↩️ 復原排版上一步</button>
-                    <button class="btn-outline" id="btnMapTidyUp" style="padding: 0.6rem; border-radius: 12px; font-size: 0.9rem; font-weight: bold; background: #fff; border: 1px solid #4CAF50; color: #4CAF50; cursor: pointer; transition: 0.2s;" title="等距均分間距">📏 等距均分間距</button>
-                    <button class="btn-secondary" id="btnMapAutoLayout" style="padding: 0.8rem 1rem; border-radius: 12px; font-size: 0.95rem; font-weight: bold; background: #fff8e1; color: #f57f17; border: none; cursor: pointer; transition: 0.2s;">✨ 執行自動排版</button>
                 </div>
-                <button class="btn-primary" id="btnMapAddTable" style="padding: 1rem 1.5rem; border-radius: 50px; font-size: 1rem; font-weight: bold; box-shadow: 0 4px 20px rgba(223, 90, 119, 0.4); border: none; cursor: pointer; transition: 0.2s;">＋ 新增桌次</button>
-            </div>
-            
-            <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
-                <div class="card-title" style="margin-bottom: 0.5rem; font-size: 0.85rem;">座位圖底圖：可貼網址或上傳圖片 (選填)</div>
-                <div class="input-row" style="margin-bottom:0;">
-                    <input type="text" id="mapUrlInput" placeholder="請貼上平面圖網址..." style="flex:1;">
-                    <button class="btn-primary" id="btnSaveMap" style="white-space: nowrap;">載入網址</button>
-                    <!-- 新增本機上傳 -->
-                    <input type="file" id="mapUploadInput" accept="image/png, image/jpeg, image/jpg" style="display: none;">
-                    <button class="btn-secondary" id="btnUploadMap" style="white-space: nowrap;">上傳圖片</button>
+
+                <!-- Right: Layout Controls -->
+                <div class="glass-card" style="position: sticky; top: 0; display: flex; flex-direction: column; gap: 1.5rem;">
+                    <button class="btn-primary" id="btnMapAddTable" style="padding: 1rem; border-radius: 16px; font-weight: 700; width: 100%; justify-content: center; box-shadow: 0 8px 20px rgba(223,90,119,0.25);">
+                        ＋ 新增桌次
+                    </button>
+
+                    <div style="border-top: 1px solid var(--border-light); padding-top: 1.5rem;">
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--sidebar-bg); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>✨</span> 自動排版設定
+                        </div>
+                        
+                        <select id="autoLayoutMode" style="width: 100%; margin-bottom: 1rem; border-radius: 12px; border: 1px solid var(--border-dark); padding: 0.6rem;">
+                            <option value="1">左右各 1 排走道</option>
+                            <option value="2" selected>左右各 2 排矩陣</option>
+                            <option value="3">左右各 3 排矩陣</option>
+                            <option value="4">左右各 4 排矩陣</option>
+                        </select>
+
+                        <!-- Sliders Group 1: Gaps -->
+                        <div style="background: #fcfcfc; border-radius: 12px; padding: 1rem; border: 1px solid #f0f0f0; margin-bottom: 0.8rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #777; margin-bottom: 0.5rem;">
+                                <span>左右間距</span>
+                                <span id="labelGapX" style="color:var(--primary); font-weight:700;">110px</span>
+                            </div>
+                            <input type="range" id="sliderGapX" min="95" max="250" value="110" style="width: 100%;">
+
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #777; margin: 1rem 0 0.5rem;">
+                                <span>上下間距</span>
+                                <span id="labelGapY" style="color:var(--primary); font-weight:700;">105px</span>
+                            </div>
+                            <input type="range" id="sliderGapY" min="95" max="250" value="105" style="width: 100%;">
+                        </div>
+
+                        <!-- Sliders Group 2: Sizes -->
+                        <div style="background: #fcfcfc; border-radius: 12px; padding: 1rem; border: 1px solid #f0f0f0; margin-bottom: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #777; margin-bottom: 0.5rem;">
+                                <span>主桌大小</span>
+                                <span id="labelSizeMain" style="color:var(--primary); font-weight:700;">110px</span>
+                            </div>
+                            <input type="range" id="sliderSizeMain" min="50" max="200" value="110" style="width: 100%;">
+
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #777; margin: 1rem 0 0.5rem;">
+                                <span>客桌大小</span>
+                                <span id="labelSizeGuest" style="color:var(--primary); font-weight:700;">90px</span>
+                            </div>
+                            <input type="range" id="sliderSizeGuest" min="50" max="150" value="90" style="width: 100%;">
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                            <button class="btn-outline" id="btnMapUndo" disabled style="width: 100%; border-radius: 12px; padding: 0.6rem; opacity: 0.5;">↩️ 復原排版</button>
+                            <button class="btn-outline" id="btnMapTidyUp" style="width: 100%; border-radius: 12px; border-color: #4CAF50; color: #4CAF50; padding: 0.6rem;">📏 等距均分</button>
+                            <button class="btn-secondary" id="btnMapAutoLayout" style="width: 100%; padding: 0.8rem; border-radius: 12px; background: #fff8e1; color: #f57f17; border: none; font-weight: 700;">✨ 執行自動排版</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div id="mapEditor" class="map-container" style="background:#fdfdfd; border: 1px dashed var(--border-dark); position:relative; overflow:hidden;">
-                <div class="map-stage">STAGE / 舞台</div>
-                <div class="map-aisle">中央進場紅毯</div>
-                <div id="snapGuideX" class="snap-guide-x"></div>
-                <div id="snapGuideY" class="snap-guide-y"></div>
-                <img id="adminMapImg" style="width:100%; height:100%; object-fit:fill; display:none; opacity:1; position:absolute; z-index:0;">
-            </div>
-            <p style="text-align:center; color:var(--text-muted); padding:1rem;">請直接拖曳桌次圖示到圖片對應位置</p>
         </div>
-    </div>
+        <!-- 婚禮資訊版面 -->
+        <div id="viewWeddingInfo" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                <h2 style="color:var(--sidebar-bg); font-weight: 700;">婚禮基本資訊設定</h2>
+            </div>
+
+            <div class="glass-card" style="max-width: 800px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--sidebar-bg); margin-bottom: 1rem;">💍 男女主角姓名</div>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem;">新郎姓名</div>
+                                <input type="text" id="infoGroomName" placeholder="例如：莊勛凱" style="width: 100%;">
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem;">新娘姓名</div>
+                                <input type="text" id="infoBrideName" placeholder="例如：楊恩懿" style="width: 100%;">
+                            </div>
+                        </div>
+
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--sidebar-bg); margin-bottom: 1rem;">📅 宴客時間</div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem;">日期 (YYYY-MM-DD)</div>
+                            <input type="date" id="infoWeddingDate" style="width: 100%;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin: 1rem 0 0.4rem;">詳細時間說明 (如：17:30 迎賓...)</div>
+                            <input type="text" id="infoWeddingTimeDesc" placeholder="17:30 迎賓入席 ｜ 18:30 晚宴開席" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--sidebar-bg); margin-bottom: 1rem;">📍 宴客地點</div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem;">飯店/餐廳名稱</div>
+                            <input type="text" id="infoVenueName" placeholder="茹曦酒店 ILLUME TAIPEI" style="width: 100%;">
+                            
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin: 1rem 0 0.4rem;">宴客廳別</div>
+                            <input type="text" id="infoVenueHall" placeholder="5F 斯賓諾莎廳" style="width: 100%;">
+
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin: 1rem 0 0.4rem;">詳細地址</div>
+                            <input type="text" id="infoVenueAddress" placeholder="台北市松山區敦化北路100號" style="width: 100%;">
+
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin: 1rem 0 0.4rem;">Google 地圖導覽連結</div>
+                            <input type="text" id="infoGoogleMapsUrl" placeholder="https://www.google.com/maps/..." style="width: 100%;">
+
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin: 1rem 0 0.4rem;">飯店位置示意圖 (圖片網址)</div>
+                            <div style="display: flex; gap: 0.6rem;">
+                                <input type="text" id="infoHotelMapUrl" placeholder="圖片網址 或 點擊右側上傳" style="flex: 1;">
+                                <button type="button" class="btn-outline" id="btnUploadHotelMap" style="padding: 0.5rem 0.8rem; white-space: nowrap; font-size: 0.8rem;">📁 上傳</button>
+                                <input type="file" id="fileInputHotelMap" accept="image/*" style="display: none;">
+                            </div>
+                        </div>
+
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--sidebar-bg); margin-bottom: 1rem;">🚗 交通與停車資訊</div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <textarea id="infoParkingInfo" placeholder="賓客免費停車資訊..." style="width: 100%; height: 100px; padding: 0.8rem; border: 1px solid var(--border-dark); border-radius: 8px; outline: none; font-family: inherit; font-size: 0.95rem;"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid var(--border-light); margin-top: 1rem; padding-top: 2rem; text-align: right;">
+                    <button class="btn-primary" id="btnSaveWeddingInfo" style="padding: 1rem 3rem; font-weight: 700; border-radius: 12px;">儲存資訊</button>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script src="admin.js"></script>
 </body>
