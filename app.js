@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (document.getElementById('hotelMapImage')) {
             const cloudHotelMap = weddingData.hotelMapData || '';
             const localHotelMap = localStorage.getItem('weddingHotelMap') || '';
-            const finalSrc = cloudHotelMap || localHotelMap || info.hotelMapUrl || '';
+            const finalSrc = cloudHotelMap || localHotelMap || info.hotelMapUrl || 'illume_map.jpg';
             document.getElementById('hotelMapImage').src = finalSrc;
         }
         if (document.getElementById('parkingInfoDetail')) {
@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 hotelMapModal.style.display = 'none';
                 // 注意：如果底層的婚宴資訊彈窗還在，可能不需要恢復捲動，
                 // 但因為飯店圖通常是最高層，關掉它時我們檢查一下婚宴資訊是否還在。
-                if (venueInfoModal.style.display !== 'block') {
+                if (venueInfoModal.style.display === 'none' || venueInfoModal.style.display === '') {
                     document.body.style.overflow = '';
                 }
             };
