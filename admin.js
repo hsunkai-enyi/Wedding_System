@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
         parkingInfo: "賓客免費停車\n請利用茹曦酒店停車場，因車位有限，停滿為止\n⚠️ 提醒：車位限高 1.75 米"
     };
     // 飯店地圖獨立儲存（避免 base64 圖片擐爆 weddingInfo JSON）
-    let hotelMapData = localStorage.getItem('weddingHotelMap') || '';
+    const _rawHotelMap = localStorage.getItem('weddingHotelMap') || '';
+    let hotelMapData = (_rawHotelMap.startsWith('data:') || _rawHotelMap.startsWith('http')) ? _rawHotelMap : '';
 
     function renderCategorySelects() {
         const addCat = document.getElementById('addGuestCategory');

@@ -161,7 +161,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 飯店地圖：優先用獨立儲存的 base64 圖片，否則用 weddingInfo 裡的網址
         if (document.getElementById('hotelMapImage')) {
             const cloudHotelMap = weddingData.hotelMapData || '';
-            const localHotelMap = localStorage.getItem('weddingHotelMap') || '';
+            const rawLocal = localStorage.getItem('weddingHotelMap') || '';
+            // 過濾掉無效的提示文字（e.g. "已上傳圖片"、"已從電腦上傳圖片"）
+            const localHotelMap = (rawLocal.startsWith('data:') || rawLocal.startsWith('http')) ? rawLocal : '';
             const finalSrc = cloudHotelMap || localHotelMap || info.hotelMapUrl || 'illume_map.jpg';
             document.getElementById('hotelMapImage').src = finalSrc;
         }
