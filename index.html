@@ -261,30 +261,33 @@
 
     <!-- ===== 婚宴資訊彈窗 ===== -->
     <div id="venueInfoModal" class="modal-overlay" style="display:none;">
-        <div class="modal-box" style="max-width:400px; border-radius:32px; overflow:visible; padding:2.5rem 1.8rem; position:relative;">
-            <button id="btnCloseVenueModal" style="position:absolute;top:1rem;right:1rem;width:32px;height:32px;border-radius:50%;background:#f5f5f5;border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#999;">✕</button>
-            <div style="text-align:center;">
-                <h2 style="font-family:var(--font-serif);font-size:2rem;color:#8b4513;margin-bottom:2rem;font-weight:700;letter-spacing:2px;">婚宴資訊</h2>
-                <div style="font-size:0.85rem;color:#b45309;font-weight:700;letter-spacing:2px;margin-bottom:0.8rem;">DATE &amp; TIME</div>
-                <div style="font-family:var(--font-serif);font-size:1.3rem;color:#333;margin-bottom:0.4rem;" id="weddingDateDetail">2026 年 10 月 25 日（星期日）</div>
-                <div style="font-size:0.95rem;color:#888;margin-bottom:2rem;" id="weddingTimeDetail">17:30 迎賓入席 ｜ 18:30 晚宴開席</div>
-                <div style="width:40px;height:1px;background:#eee;margin:0 auto 2rem;"></div>
-                <div style="font-size:0.85rem;color:#b45309;font-weight:700;letter-spacing:2px;margin-bottom:0.8rem;">LOCATION</div>
-                <div style="font-size:1.3rem;font-weight:700;color:#333;margin-bottom:0.2rem;" id="venueNameDetail">茹曦酒店 ILLUME TAIPEI</div>
-                <div style="font-size:1rem;font-weight:600;color:#c07848;margin-bottom:0.4rem;letter-spacing:1px;" id="venueHallDetail">5F 斯賓諾莎廳</div>
-                <div style="font-size:0.9rem;color:#888;margin-bottom:1.5rem;" id="venueAddressDetail">台北市松山區敦化北路100號</div>
-                <div style="font-size:0.85rem;color:#b45309;font-weight:700;letter-spacing:2px;margin-bottom:0.8rem;">PARKING</div>
-                <div id="parkingInfoDetail" style="white-space: pre-line; font-size: 0.85rem; color: #888; margin-bottom: 2rem;">
-                    <div style="font-size:0.95rem;color:#333;font-weight:600;margin-bottom:0.2rem;">賓客免費停車</div>
-                    <div>請利用茹曦酒店停車場，因車位有限，停滿為止</div>
-                    <div style="color:#df5a77;font-weight:700;">⚠️ 提醒：車位限高 1.75 米</div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:0.8rem;">
-                    <a id="btnGoogleMaps" href="https://www.google.com/maps/search/?api=1&query=茹曦酒店+ILLUME+TAIPEI" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                        <button style="width:100%;padding:1rem;border-radius:16px;background:#8b4513;color:#fff;border:none;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:2px;">📍 地圖導航</button>
-                    </a>
-                    <button id="btnShowHotelMap" style="width:100%;padding:1rem;border-radius:16px;background:#fff;color:#8b4513;border:1.5px solid #8b4513;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:1px;">🗺️ 飯店位置圖</button>
-                </div>
+        <div class="modal-box venue-info-box">
+            <button id="btnCloseVenueModal" class="venue-close-btn">✕</button>
+            <h2 class="venue-title">婚宴資訊</h2>
+            
+            <div class="venue-section-title">DATE &amp; TIME</div>
+            <div class="venue-date-text" id="weddingDateDetail">2026 年 10 月 25 日（星期日）</div>
+            <div class="venue-time-text" id="weddingTimeDetail">17:30 迎賓入席 ｜ 18:30 晚宴開席</div>
+            
+            <div class="venue-divider"></div>
+            
+            <div class="venue-section-title">LOCATION</div>
+            <div class="venue-name-text" id="venueNameDetail">茹曦酒店 ILLUME TAIPEI</div>
+            <div class="venue-hall-text" id="venueHallDetail">5F 斯賓諾莎廳</div>
+            <div class="venue-addr-text" id="venueAddressDetail">台北市松山區敦化北路100號</div>
+            
+            <div class="venue-section-title">PARKING</div>
+            <div id="parkingInfoDetail" class="venue-parking-box">
+                <div class="venue-parking-title">賓客免費停車</div>
+                <div>請利用茹曦酒店停車場，因車位有限，停滿為止</div>
+                <div style="color:#df5a77;font-weight:700;margin-top:0.2rem;">⚠️ 提醒：車位限高 1.75 米</div>
+            </div>
+            
+            <div class="venue-btn-group">
+                <a id="btnGoogleMaps" href="https://www.google.com/maps/search/?api=1&query=茹曦酒店+ILLUME+TAIPEI" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                    <button class="venue-btn-map">📍 地圖導航</button>
+                </a>
+                <button id="btnShowHotelMap" class="venue-btn-hotel">🗺️ 飯店位置圖</button>
             </div>
         </div>
     </div>
