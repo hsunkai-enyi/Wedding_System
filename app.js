@@ -165,7 +165,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const rawLocal = localStorage.getItem('weddingHotelMap') || '';
             // 過濾掉無效的提示文字（e.g. "已上傳圖片"、"已從電腦上傳圖片"）
             const localHotelMap = (rawLocal.startsWith('data:') || rawLocal.startsWith('http')) ? rawLocal : '';
-            const finalSrc = cloudHotelMap || localHotelMap || info.hotelMapUrl || 'illume_map.jpg';
+            
+            let infoUrl = info.hotelMapUrl || '';
+            let validInfoUrl = (infoUrl.startsWith('data:') || infoUrl.startsWith('http') || infoUrl.endsWith('.jpg') || infoUrl.endsWith('.png') || infoUrl.endsWith('.jpeg')) ? infoUrl : '';
+            
+            const finalSrc = cloudHotelMap || localHotelMap || validInfoUrl || 'illume_map.jpg';
             document.getElementById('hotelMapImage').src = finalSrc;
         }
         if (document.getElementById('parkingInfoDetail')) {
