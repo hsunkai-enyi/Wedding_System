@@ -291,10 +291,10 @@
 
     <!-- ===== 飯店位置圖 ===== -->
     <div id="hotelMapModal" class="modal-overlay" style="display:none;z-index:10000;">
-        <div class="modal-box" style="max-width:500px;background:transparent;box-shadow:none;padding:0;overflow:visible;">
-            <button id="btnCloseHotelMap" style="position:absolute;top:-3rem;right:0;background:none;border:none;color:#fff;font-size:2rem;cursor:pointer;">✕</button>
-            <img id="hotelMapImage" src="illume_map.jpg" alt="飯店位置示意圖" style="width:100%;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-            <p style="color:#fff;text-align:center;margin-top:1rem;font-size:0.9rem;letter-spacing:1px;">長按圖片可儲存或直接截圖</p>
+        <div class="modal-box hotel-map-box">
+            <button id="btnCloseHotelMap" class="hotel-map-close-btn">✕</button>
+            <img id="hotelMapImage" src="illume_map.jpg" alt="飯店位置示意圖" class="hotel-map-img">
+            <p class="hotel-map-hint">長按圖片可儲存或直接截圖</p>
         </div>
     </div>
 
