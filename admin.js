@@ -3,12 +3,27 @@
 // ==========================================
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPOHNwJgpDtrpTdWvWm3wHN8hgntUhyCjb4qqN0s7VZEMdlne40RVfjFyp4HXCCar-/exec";
 
-window.formatPhone = function(val) {
-    if (!val) return '';
-    let d = val.replace(/\D/g, '');
-    if (d.length <= 4) return d;
-    if (d.length <= 7) return d.slice(0,4) + '-' + d.slice(4);
-    return d.slice(0,4) + '-' + d.slice(4,7) + '-' + d.slice(7,10);
+window.handlePhoneInput = function(e) {
+    if (!e || !e.target) return;
+    const input = e.target;
+    const selectionStart = input.selectionStart;
+    const oldLength = input.value.length;
+
+    let digits = input.value.replace(/\D/g, '');
+    digits = digits.slice(0, 10);
+
+    let formatted = digits;
+    if (digits.length > 4 && digits.length <= 7) {
+        formatted = digits.slice(0,4) + '-' + digits.slice(4);
+    } else if (digits.length > 7) {
+        formatted = digits.slice(0,4) + '-' + digits.slice(4,7) + '-' + digits.slice(7);
+    }
+
+    input.value = formatted;
+
+    let newLength = input.value.length;
+    let newCursorPos = selectionStart + (newLength - oldLength);
+    input.setSelectionRange(newCursorPos, newCursorPos);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -115,23 +130,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderCategorySelects() {
         const addCat = document.getElementById('addGuestCategory');
-        if(addCat) {
-            let options = categories.map(c => `<option value="${c}">${c}</option>`).join('');
-            options += `<option value="＋ 自訂新分類" style="color:var(--primary); font-weight:bold;">＋ 自訂新分類...</option>`;
-            
-            // 保留原本選的值
-            let oldVal = addCat.value;
-            addCat.innerHTML = options;
-            if (oldVal && (categories.includes(oldVal) || oldVal === '＋ 自訂新分類')) {
-                addCat.value = oldVal;
-            } else if (categories.length > 0) {
-                addCat.value = categories[0];
+        const datalist = document.getElementById('addGuestCategoryList');
+        if(addCat && datalist) {
+            const oldVal = addCat.value;
+            datalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
+            // 若目前值是舊的 prompt 殘值，重設為第一個分類
+            if (!oldVal || oldVal === '＋ 自訂新分類') {
+                addCat.value = categories[0] || '';
             }
-            
-            // 綁定事件 (避免重複綁定，先移掉舊的)
-            addCat.onchange = function() {
-                window.handleCustomCategory(this);
-            };
         }
     }
     renderCategorySelects();
@@ -429,8 +435,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const p = addGuestPhone ? addGuestPhone.value.trim() : '';
         if(!n) return alert('請輸入姓名');
         
-        let newCat = addGuestCategory.value;
-        if (newCat === '＋ 自訂新分類') newCat = '未分類'; // 防呆
+        let newCat = addGuestCategory.value.trim() || '未分類';
+        if (newCat && newCat !== '未分類' && !categories.includes(newCat)) {
+            categories.push(newCat);
+            localStorage.setItem('weddingCategories', JSON.stringify(categories));
+            renderCategorySelects();
+        }
 
         guests.push({
             id: 'g_' + Date.now(),
@@ -601,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="text" value="${g.name}" onchange="updateGuest('${g.id}', 'name', this)" style="width:100px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:1rem; color:var(--text-main); font-weight:500;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
                 </td>
                 <td>
-                    <input type="text" value="${g.phone || ''}" placeholder="09XX-XXX-XXX" onchange="updateGuest('${g.id}', 'phone', this)" maxlength="12" oninput="this.value = window.formatPhone(this.value);" style="width:110px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main);" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
+                    <input type="text" value="${g.phone || ''}" placeholder="09XX-XXX-XXX" onchange="updateGuest('${g.id}', 'phone', this)" maxlength="12" oninput="window.handlePhoneInput(event);" style="width:110px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main);" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
                 </td>
                 <td>
                     <select onchange="updateGuest('${g.id}', 'category', this)" style="width:110px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:600;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
