@@ -1366,7 +1366,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 pushLayoutUndo(); // 紀錄刪除前的狀態
                 guests.forEach(g => { if(g.table === t.id) { g.table = ''; g.seat = ''; }});
                 tables = tables.filter(tbl => tbl.id !== t.id);
-                if(activeTableId === t.id) activeTableId = null;
+                if(activeTableId === t.id) {
+                    activeTableId = null;
+                    tableConfigCard.style.opacity = '0.5';
+                    tableConfigCard.style.pointerEvents = 'none';
+                }
                 saveData();
                 renderTablesList();
                 renderMapEditor();
