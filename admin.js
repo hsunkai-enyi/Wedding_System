@@ -108,45 +108,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.handleCustomCategory = function(selectEl) {
         if (selectEl.value === '＋ 自訂新分類') {
-            let newCat = prompt('請輸入新的關係分類：');
-            if (newCat && newCat.trim()) {
-                newCat = newCat.trim();
-                if (!categories.includes(newCat)) {
-                    categories.push(newCat);
-                    saveData();
+            // 建立一個臨時的輸入框來取代 prompt，避免 LINE 瀏覽器阻擋
+            let input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = '輸入新分類 (按Enter儲存)';
+            input.style.cssText = selectEl.style.cssText;
+            input.style.width = selectEl.offsetWidth + 'px';
+            
+            selectEl.style.display = 'none';
+            selectEl.parentNode.insertBefore(input, selectEl.nextSibling);
+            input.focus();
+
+            const finishCustom = () => {
+                let newCat = input.value.trim();
+                if (newCat) {
+                    if (!categories.includes(newCat)) {
+                        categories.push(newCat);
+                        saveData();
+                    }
+                    renderCategorySelects();
+                    if (typeof renderCategoriesManager === 'function') renderCategoriesManager();
+                    selectEl.value = newCat;
+                } else {
+                    selectEl.value = categories[0] || '未分類';
                 }
-                renderCategorySelects();
-                if (typeof renderCategoriesManager === 'function') renderCategoriesManager();
-                selectEl.value = newCat;
-                return newCat;
-            } else {
-                // 回復到預設第一個
-                selectEl.value = categories[0] || '未分類';
-                return selectEl.value;
-            }
+                input.remove();
+                selectEl.style.display = '';
+            };
+
+            input.onblur = finishCustom;
+            input.onkeydown = function(e) {
+                if (e.key === 'Enter') finishCustom();
+                if (e.key === 'Escape') {
+                    input.value = '';
+                    finishCustom();
+                }
+            };
+            return selectEl.value;
         }
         return selectEl.value;
     };
 
     function renderCategorySelects() {
         const addCat = document.getElementById('addGuestCategory');
-        if(addCat) {
+        if(!addCat) return;
+
+        // 判斷當前 HTML 是快取的 <input list> 還是最新的 <select>
+        if (addCat.tagName === 'SELECT') {
             let options = categories.map(c => `<option value="${c}">${c}</option>`).join('');
             options += `<option value="＋ 自訂新分類" style="color:var(--primary); font-weight:bold;">＋ 自訂新分類...</option>`;
             
-            // 保留原本選的值
             let oldVal = addCat.value;
             addCat.innerHTML = options;
+            
             if (oldVal && (categories.includes(oldVal) || oldVal === '＋ 自訂新分類')) {
                 addCat.value = oldVal;
             } else if (categories.length > 0) {
                 addCat.value = categories[0];
             }
             
-            // 綁定事件 (避免重複綁定，先移掉舊的)
             addCat.onchange = function() {
                 window.handleCustomCategory(this);
             };
+        } else if (addCat.tagName === 'INPUT') {
+            // 兼容舊版快取 HTML
+            const datalistId = addCat.getAttribute('list');
+            if (datalistId) {
+                let datalist = document.getElementById(datalistId);
+                if (!datalist) {
+                    datalist = document.createElement('datalist');
+                    datalist.id = datalistId;
+                    document.body.appendChild(datalist);
+                }
+                datalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
+            }
         }
     }
     renderCategorySelects();
