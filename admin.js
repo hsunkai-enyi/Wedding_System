@@ -92,9 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let hotelMapData = (_rawHotelMap.startsWith('data:') || _rawHotelMap.startsWith('http')) ? _rawHotelMap : '';
 
     function renderCategorySelects() {
-        const addCat = document.getElementById('addGuestCategory');
-        if(addCat) {
-            addCat.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        const addCatList = document.getElementById('categoryDatalist');
+        if(addCatList) {
+            addCatList.innerHTML = categories.map(c => `<option value="${c}">`).join('');
         }
     }
     renderCategorySelects();
@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('weddingGuests', JSON.stringify(guests));
             localStorage.setItem('weddingMap', mapUrl);
             localStorage.setItem('weddingTables', JSON.stringify(tables));
+            localStorage.setItem('weddingCategories', JSON.stringify(categories));
             localStorage.setItem('weddingMainTableSize', mainTableSize);
             localStorage.setItem('weddingGuestTableSize', guestTableSize);
             localStorage.setItem('weddingInfo', JSON.stringify(weddingInfo));
@@ -391,11 +392,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const p = addGuestPhone ? addGuestPhone.value.trim() : '';
         if(!n) return alert('請輸入姓名');
         
+        let newCat = addGuestCategory.value.trim() || '未分類';
+        if (!categories.includes(newCat)) {
+            categories.push(newCat);
+            renderCategorySelects();
+        }
+
         guests.push({
             id: 'g_' + Date.now(),
             name: n,
             phone: p,
-            category: addGuestCategory.value.trim() || '未分類',
+            category: newCat,
             diet: document.querySelector('input[name="addGuestDiet"]:checked').value,
             babySeat: addGuestBaby.checked,
             table: '',
@@ -422,6 +429,14 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('姓名不能為空');
             el.value = guest.name; // revert
             return;
+        }
+
+        if (field === 'category') {
+            val = val || '未分類';
+            if (!categories.includes(val)) {
+                categories.push(val);
+                renderCategorySelects();
+            }
         }
 
         guest[field] = val;
@@ -555,10 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="text" value="${g.phone || ''}" placeholder="09XX-XXX-XXX" onchange="updateGuest('${g.id}', 'phone', this)" maxlength="12" oninput="this.value = window.formatPhone(this.value);" style="width:110px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main);" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
                 </td>
                 <td>
-                    <select onchange="updateGuest('${g.id}', 'category', this)" style="width:110px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:600;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
-                        ${ categories.includes(g.category || '未分類') ? '' : `<option value="${g.category}" selected>${g.category}</option>` }
-                        ${ categories.map(c => `<option value="${c}" ${(g.category || '未分類') === c ? 'selected' : ''}>${c}</option>`).join('') }
-                    </select>
+                    <input type="text" list="categoryDatalist" value="${g.category || '未分類'}" onchange="updateGuest('${g.id}', 'category', this)" placeholder="關係/分類" style="width:110px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:600;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
                 </td>
                 <td>
                     <select onchange="updateGuest('${g.id}', 'diet', this)" style="border:1px solid transparent; border-radius:12px; padding:0.3rem 0.6rem; outline:none; cursor:pointer; ${g.diet === '素食' ? 'background:#e8f5e9; color:#2e7d32; font-weight:bold;' : 'background:var(--btn-light); color:var(--text-muted);'}" onfocus="this.style.border='1px solid var(--primary)'" onblur="this.style.border='1px solid transparent'">
