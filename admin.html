@@ -124,8 +124,9 @@
                 <div id="addGuestForm" class="glass-card" style="display:none; margin-bottom: 2rem;">
                     <div class="input-row" style="margin-bottom:0; flex-wrap: wrap;">
                         <input type="text" id="addGuestName" placeholder="來賓姓名" style="width: 120px;">
-                        <input type="text" id="addGuestPhone" placeholder="電話(選填)" style="width: 120px;">
-                        <select id="addGuestCategory" style="width: 130px;"></select>
+                        <input type="text" id="addGuestPhone" placeholder="電話(選填)" style="width: 120px;" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                        <input type="text" id="addGuestCategory" list="categoryDatalist" placeholder="關係/分類" style="width: 130px; padding:0.4rem; border-radius:6px; border:1px solid var(--border-dark); outline:none; font-family: inherit;">
+                        <datalist id="categoryDatalist"></datalist>
                         <div style="display:flex; align-items:center; gap:1rem; margin: 0 1rem;">
                             <label style="cursor:pointer; font-size:0.9rem; font-weight:600;"><input type="radio" name="addGuestDiet" value="葷食" checked> 葷食</label>
                             <label style="cursor:pointer; font-size:0.9rem; font-weight:600; color:#2e7d32;"><input type="radio" name="addGuestDiet" value="素食"> 素食</label>
