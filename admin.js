@@ -395,10 +395,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         saveData();
         renderGuests();
-        addGuestForm.style.display = 'none';
         addGuestName.value = '';
         if (addGuestPhone) addGuestPhone.value = '';
-        addGuestCategory.value = '';
+        // 刻意不重置 addGuestCategory.value，保留上一次選擇的分類，達到連續輸入時「自動填寫/記憶」的效果
         addGuestBaby.checked = false;
         document.querySelector('input[name="addGuestDiet"][value="葷食"]').checked = true;
     });
@@ -545,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="text" value="${g.name}" onchange="updateGuest('${g.id}', 'name', this)" style="width:100px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:1rem; color:var(--text-main); font-weight:500;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
                 </td>
                 <td>
-                    <input type="text" value="${g.phone || ''}" placeholder="09..." onchange="updateGuest('${g.id}', 'phone', this)" style="width:100px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main);" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
+                    <input type="text" value="${g.phone || ''}" placeholder="09..." onchange="updateGuest('${g.id}', 'phone', this)" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');" style="width:100px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main);" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
                 </td>
                 <td>
                     <select onchange="updateGuest('${g.id}', 'category', this)" style="width:110px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:600;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
