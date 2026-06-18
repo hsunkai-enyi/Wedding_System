@@ -130,14 +130,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderCategorySelects() {
         const addCat = document.getElementById('addGuestCategory');
-        const datalist = document.getElementById('addGuestCategoryList');
-        if(addCat && datalist) {
-            const oldVal = addCat.value;
-            datalist.innerHTML = categories.map(c => `<option value="${c}">`).join('');
-            // 若目前值是舊的 prompt 殘值，重設為第一個分類
-            if (!oldVal || oldVal === '＋ 自訂新分類') {
-                addCat.value = categories[0] || '';
+        if(addCat) {
+            let options = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            options += `<option value="＋ 自訂新分類" style="color:var(--primary); font-weight:bold;">＋ 自訂新分類...</option>`;
+            
+            // 保留原本選的值
+            let oldVal = addCat.value;
+            addCat.innerHTML = options;
+            if (oldVal && (categories.includes(oldVal) || oldVal === '＋ 自訂新分類')) {
+                addCat.value = oldVal;
+            } else if (categories.length > 0) {
+                addCat.value = categories[0];
             }
+            
+            // 綁定事件 (避免重複綁定，先移掉舊的)
+            addCat.onchange = function() {
+                window.handleCustomCategory(this);
+            };
         }
     }
     renderCategorySelects();
