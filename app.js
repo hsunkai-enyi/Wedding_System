@@ -239,11 +239,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         mapContainer.style.height = 'auto';
 
         const targetTableIds = [...new Set(groupGuests.map(g => g.table).filter(id => id))];
+        const colorPalette = ['#df5a77', '#4a90e2', '#f5a623', '#4caf50', '#9c27b0'];
 
         data.tables.forEach(t => {
             const pin = document.createElement('div');
             pin.className = 'map-editor-pin';
-            const isGuestTable = targetTableIds.includes(t.id);
+            const tableIndex = targetTableIds.indexOf(t.id);
+            const isGuestTable = tableIndex !== -1;
             const isMain = (t.type === '主桌');
 
             pin.style.position = 'absolute';
@@ -253,19 +255,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             pin.style.zIndex = isGuestTable ? '20' : '5';
 
             if (isGuestTable) {
+                const pinColor = colorPalette[tableIndex % colorPalette.length];
+                
                 // 目標桌：固定大且清楚
                 pin.style.width = 'clamp(44px, 11%, 62px)';
                 pin.style.aspectRatio = '1 / 1';
                 pin.style.height = 'auto';
                 pin.style.borderRadius = '50%';
-                pin.style.background = 'var(--primary)';
+                pin.style.background = pinColor;
                 pin.style.border = '2px solid #fff';
                 pin.style.color = '#fff';
                 pin.style.display = 'flex';
                 pin.style.flexDirection = 'column';
                 pin.style.alignItems = 'center';
                 pin.style.justifyContent = 'center';
-                pin.style.boxShadow = '0 0 0 5px rgba(223, 90, 119, 0.3), 0 4px 14px rgba(223, 90, 119, 0.45)';
+                pin.style.boxShadow = `0 0 0 5px ${pinColor}4D, 0 4px 14px ${pinColor}73`;
                 pin.style.animation = 'pulse 1.5s infinite';
 
                 const youDiv = document.createElement('div');
@@ -306,13 +310,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Modal footer 顯示桌次說明（含閃爍圓點）
         if (modalTableLabel) {
             let labelHtml = '';
-            targetTableIds.forEach(tid => {
+            targetTableIds.forEach((tid, index) => {
+                const pinColor = colorPalette[index % colorPalette.length];
                 const tableInfo = data.tables.find(tbl => tbl.id === tid);
                 const tName = tableInfo ? tableInfo.name : '尚未分配';
                 labelHtml += `
                     <div style="display:inline-flex; align-items:center; gap:0.6rem; background:#fdf0f2; border-radius:50px; padding:0.6rem 1.2rem; font-weight:600; margin: 0.2rem;">
-                        <span style="display:inline-block; width:10px; height:10px; background:var(--primary); border-radius:50%; box-shadow:0 0 0 0 rgba(223,90,119,0.7); animation:pulse 1.5s infinite; flex-shrink:0;"></span>
-                        <span style="color:var(--text-main); font-size:1.05rem;">您的座位：<strong style="color:var(--primary);">${tName}</strong></span>
+                        <span style="display:inline-block; width:10px; height:10px; background:${pinColor}; border-radius:50%; box-shadow:0 0 0 0 ${pinColor}B3; animation:pulse 1.5s infinite; flex-shrink:0;"></span>
+                        <span style="color:var(--text-main); font-size:1.05rem;">您的座位：<strong style="color:${pinColor};">${tName}</strong></span>
                     </div>
                 `;
             });
