@@ -257,8 +257,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isGuestTable) {
                 const pinColor = colorPalette[tableIndex % colorPalette.length];
                 
-                // 目標桌：固定大且清楚
-                pin.style.width = 'clamp(44px, 11%, 62px)';
+                // 目標桌：固定大且清楚 (稍微縮小，避免手機過大)
+                pin.style.width = 'clamp(38px, 9.5%, 52px)';
                 pin.style.aspectRatio = '1 / 1';
                 pin.style.height = 'auto';
                 pin.style.borderRadius = '50%';

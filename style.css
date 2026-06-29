@@ -514,9 +514,9 @@ body.envelope-page { overflow: hidden; }
   letter-spacing: 5px; font-size: 1.1rem; z-index: 1;
 }
 @keyframes pulse {
-  0%   { transform: translate(-50%,-50%) scale(1);    box-shadow: 0 0 0 0 rgba(223,90,119,0.7); }
-  70%  { transform: translate(-50%,-50%) scale(1.05); box-shadow: 0 0 0 15px rgba(223,90,119,0); }
-  100% { transform: translate(-50%,-50%) scale(1);    box-shadow: 0 0 0 0 rgba(223,90,119,0); }
+  0%   { transform: translate(-50%,-50%) scale(1); }
+  50%  { transform: translate(-50%,-50%) scale(1.05); }
+  100% { transform: translate(-50%,-50%) scale(1); }
 }
 
 .snap-guide-x {
