@@ -1445,6 +1445,8 @@ document.addEventListener('DOMContentLoaded', () => {
             countDiv.style.opacity = '0.8';
             countDiv.textContent = `${occupiedCount}/${t.seatsCount}`;
 
+            pin.title = `${t.name} (${occupiedCount}/${t.seatsCount}人)`;
+            
             pin.appendChild(nameDiv);
             pin.appendChild(countDiv);
 
