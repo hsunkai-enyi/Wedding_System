@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Migrate old tables
     tables = tables.map(t => {
         if(!t.name) t.name = t.id; // old t.id was the name
-        if(!t.type) t.type = '客桌';
+        if(!t.type || t.type === '一般') t.type = '客桌';
         if(!t.seatsCount) t.seatsCount = 10;
         return t;
     });
@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Build table options grouped by table type
             let groupedTables = {};
             tables.forEach(tbl => {
-                let cat = tbl.type || '一般';
+                let cat = tbl.type || '客桌';
                 if(!groupedTables[cat]) groupedTables[cat] = [];
                 groupedTables[cat].push(tbl);
             });
