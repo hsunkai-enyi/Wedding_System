@@ -268,25 +268,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pin.style.boxShadow = '0 0 0 5px rgba(223, 90, 119, 0.3), 0 4px 14px rgba(223, 90, 119, 0.45)';
                 pin.style.animation = 'pulse 1.5s infinite';
 
-                const nameDiv = document.createElement('div');
-                nameDiv.style.fontWeight = 'bold';
-                nameDiv.style.fontSize = 'clamp(0.45rem, 1.2vw, 0.65rem)';
-                nameDiv.style.textAlign = 'center';
-                nameDiv.style.width = '85%';
-                nameDiv.style.whiteSpace = 'nowrap';
-                nameDiv.style.overflow = 'hidden';
-                nameDiv.style.textOverflow = 'ellipsis';
-                nameDiv.style.lineHeight = '1.2';
-                nameDiv.textContent = t.name;
-                pin.appendChild(nameDiv);
-
                 const youDiv = document.createElement('div');
-                youDiv.style.fontSize = 'clamp(0.38rem, 1vw, 0.55rem)';
-                youDiv.style.opacity = '0.9';
-                youDiv.style.marginTop = '1px';
-                youDiv.textContent = '▼ 您在這';
+                youDiv.style.fontWeight = 'bold';
+                youDiv.style.fontSize = 'clamp(0.6rem, 1.4vw, 0.78rem)';
+                youDiv.style.textAlign = 'center';
+                youDiv.style.lineHeight = '1.3';
+                youDiv.style.letterSpacing = '0.05em';
+                youDiv.innerHTML = '您的<br>座位';
                 pin.appendChild(youDiv);
 
+                pin.title = t.name;
             } else {
                 // 其他桌：小點位置參考，hover 可看桌名
                 if (isMain) {
