@@ -681,7 +681,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${tableOptionsHtml}
                     </select>
                 </td>
-                <td>${g.seat ? '<span class="red-text">' + g.seat + '</span>' : '-'}</td>
                 <td><button class="btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;" onclick="deleteGuest('${g.id}')">刪除</button></td>
             `;
             guestTableTbody.appendChild(tr);

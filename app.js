@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 youDiv.style.textAlign = 'center';
                 youDiv.style.lineHeight = '1.3';
                 youDiv.style.letterSpacing = '0.05em';
-                youDiv.innerHTML = '您的<br>座位';
+                youDiv.innerHTML = '您的<br>桌次';
                 pin.appendChild(youDiv);
 
                 pin.title = t.name;
@@ -314,17 +314,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const tableInfo = data.tables.find(tbl => tbl.id === tid);
                 const tName = tableInfo ? tableInfo.name : '尚未分配';
                 
-                // 找出該桌的所有座位號碼
-                const seatsAtTable = groupGuests.filter(g => g.table === tid && g.seat).map(g => g.seat);
-                let seatText = '';
-                if (seatsAtTable.length > 0) {
-                    seatText = ` <span style="color:var(--text-muted); font-size:0.9rem;">　第 <strong style="color:${pinColor}; font-size:1.1rem;">${seatsAtTable.join(', ')}</strong> 號座位</span>`;
-                }
-
                 labelHtml += `
                     <div style="display:inline-flex; align-items:center; gap:0.6rem; background:#fdf0f2; border-radius:50px; padding:0.6rem 1.2rem; font-weight:600; margin: 0.2rem;">
                         <span style="display:inline-block; width:10px; height:10px; background:${pinColor}; border-radius:50%; box-shadow:0 0 0 0 ${pinColor}B3; animation:pulse 1.5s infinite; flex-shrink:0;"></span>
-                        <span style="color:var(--text-main); font-size:1.05rem;">您的座位：<strong style="color:${pinColor};">${tName}</strong>${seatText}</span>
+                        <span style="color:var(--text-main); font-size:1.05rem;">您的桌次：<strong style="color:${pinColor};">${tName}</strong></span>
                     </div>
                 `;
             });
@@ -347,7 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setTimeout(() => { clearInterval(check); resolve(); }, 6000);
             });
             searchBtn.disabled = false;
-            searchBtn.innerHTML = '座位查詢';
+            searchBtn.innerHTML = '桌次查詢';
         }
 
         const name = guestNameInput.value.trim();
@@ -406,7 +399,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         groupGuests.forEach(g => {
             const tableInfo = data.tables.find(t => t.id === g.table);
             const tableName = tableInfo ? tableInfo.name : '尚未分配';
-            const seatText = g.seat ? ` 第 <strong>${g.seat}</strong> 號座位` : '';
             
             let badges = '';
             if (g.babySeat) badges += `<span style="font-size:1.1rem;" title="兒童安全座椅">👶</span> `;
@@ -418,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         👤 ${g.name} <span style="margin-left:auto;">${badges}</span>
                     </div>
                     <div style="color:var(--text-muted); font-size:0.95rem;">
-                        📍 【<span style="color:var(--primary); font-weight:600;">${tableName}</span>】${seatText}
+                        📍 【<span style="color:var(--primary); font-weight:600;">${tableName}</span>】
                     </div>
                 </div>
             `;
