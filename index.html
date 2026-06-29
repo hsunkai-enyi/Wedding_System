@@ -208,16 +208,11 @@
 
             <!-- 座位資訊區 -->
             <div class="result-body">
-                <p class="result-label">您的座位安排在</p>
-                <div class="result-table-name" id="resTable"></div>
-
-                <div id="resSeatWrapper" style="display:none;" class="result-seat-row">
-                    <span class="result-seat-label">座位號碼</span>
-                    <span class="result-seat-num" id="resSeat"></span>
+                <p class="result-label">您的座位安排如下</p>
+                
+                <!-- 動態群組列表容器 -->
+                <div id="resGroupList" style="display: flex; flex-direction: column; gap: 0.8rem; margin: 1rem 0 1.5rem;">
                 </div>
-
-                <div id="resBabySeatWrapper" style="display:none;" class="result-badge result-badge-baby">👶 本座位已為您準備兒童安全座椅</div>
-                <div id="resDietWrapper" style="display:none;" class="result-badge result-badge-diet">🥗 本座位已為您準備素食餐點</div>
 
                 <button id="btnOpenMap" style="display:none;" class="result-map-btn">🗺️ 查看座位位置圖</button>
             </div>
@@ -379,6 +374,6 @@
     }
 
     </script>
-    <script src="app.js?v=1.0.1"></script>
+    <script src="app.js?v=1.0.2"></script>
 </body>
 </html>

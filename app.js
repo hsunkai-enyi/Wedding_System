@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 背景載入資料（不阻塞事件綁定）
     loadDataFromCloud();
 
-    function renderMap(data, guest) {
+    function renderMap(data, groupGuests) {
         const stageEl = mapContainer.querySelector('.map-stage');
         const aisleEl = mapContainer.querySelector('.map-aisle');
 
@@ -238,12 +238,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         mapContainer.style.height = 'auto';
 
-        const tableInfo = data.tables.find(t => t.id === guest.table);
+        const targetTableIds = [...new Set(groupGuests.map(g => g.table).filter(id => id))];
 
         data.tables.forEach(t => {
             const pin = document.createElement('div');
             pin.className = 'map-editor-pin';
-            const isGuestTable = (t.id === guest.table);
+            const isGuestTable = targetTableIds.includes(t.id);
             const isMain = (t.type === '主桌');
 
             pin.style.position = 'absolute';
@@ -305,21 +305,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Modal footer 顯示桌次說明（含閃爍圓點）
         if (modalTableLabel) {
-            const seatText = guest.seat ? `<span style="color:var(--text-muted); font-size:0.9rem;">　第 <strong style="color:var(--primary); font-size:1.1rem;">${guest.seat}</strong> 號座位</span>` : '';
-            modalTableLabel.innerHTML = `
-                <div style="display:inline-flex; align-items:center; gap:0.6rem; background:#fdf0f2; border-radius:50px; padding:0.6rem 1.2rem; font-weight:600;">
-                    <span style="
-                        display:inline-block;
-                        width:10px; height:10px;
-                        border-radius:50%;
-                        background:var(--primary);
-                        box-shadow:0 0 0 0 rgba(223,90,119,0.7);
-                        animation:pulse 1.5s infinite;
-                        flex-shrink:0;
-                    "></span>
-                    <span>您的座位：<strong style="color:var(--primary);">${tableInfo ? tableInfo.name : '尚未分配'}</strong>${seatText}</span>
-                </div>
-            `;
+            let labelHtml = '';
+            targetTableIds.forEach(tid => {
+                const tableInfo = data.tables.find(tbl => tbl.id === tid);
+                const tName = tableInfo ? tableInfo.name : '尚未分配';
+                labelHtml += `
+                    <div style="display:inline-flex; align-items:center; gap:0.6rem; background:#fdf0f2; border-radius:50px; padding:0.6rem 1.2rem; font-weight:600; margin: 0.2rem;">
+                        <span style="display:inline-block; width:10px; height:10px; background:var(--primary); border-radius:50%; box-shadow:0 0 0 0 rgba(223,90,119,0.7); animation:pulse 1.5s infinite; flex-shrink:0;"></span>
+                        <span style="color:var(--text-main); font-size:1.05rem;">您的座位：<strong style="color:var(--primary);">${tName}</strong></span>
+                    </div>
+                `;
+            });
+            modalTableLabel.innerHTML = labelHtml;
         }
     }
 
@@ -355,71 +352,85 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = weddingData;
         
         // 搜尋邏輯：完全符合姓名，或是電話末端符合輸入的數字
-        const matchedGuests = data.guests.filter(g => 
+        let matchedGuests = data.guests.filter(g => 
             g.name === name || 
             (g.phone && g.phone.endsWith(name))
         );
 
-        if (matchedGuests.length > 1) {
-            if (searchErrorHint) {
-                searchErrorHint.textContent = '❌ 找到多筆相符資料，請改輸入「完整姓名」查詢';
-                searchErrorHint.style.display = 'block';
-            }
-            return;
-        }
-
-        const guest = matchedGuests[0];
-
-        if (guest) {
-            resName.textContent = guest.name;
-
-            const tableInfo = data.tables.find(t => t.id === guest.table);
-            resTable.textContent = tableInfo ? tableInfo.name : '尚未分配';
-
-            if (guest.seat) {
-                resSeat.textContent = guest.seat;
-                resSeatWrapper.style.display = 'inline';
-            } else {
-                resSeatWrapper.style.display = 'none';
-            }
-
-            if (guest.babySeat === true) {
-                resBabySeatWrapper.style.display = 'block';
-            } else {
-                resBabySeatWrapper.style.display = 'none';
-            }
-
-            if (guest.diet === '素食') {
-                resDietWrapper.style.display = 'block';
-            } else {
-                resDietWrapper.style.display = 'none';
-            }
-
-            const searchModal = document.getElementById('searchModal');
-            if (searchModal) searchModal.style.display = 'none';
-
-            resultModal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-
-            // 顯示「查看地圖」按鈕
-            if (data.tables.length > 0) {
-                btnOpenMap.style.display = 'block';
-                btnOpenMap.onclick = () => {
-                    // 先隱藏結果層
-                    resultModal.style.display = 'none';
-                    renderMap(data, guest);
-                    mapModal.style.display = 'flex';
-                    document.body.style.overflow = 'hidden';
-                };
-            } else {
-                btnOpenMap.style.display = 'none';
-            }
-        } else {
+        if (matchedGuests.length === 0) {
             const searchErrorHint = document.getElementById('searchErrorHint');
             if (searchErrorHint) {
                 searchErrorHint.textContent = '❌ 找不到相符資料，請確認是否輸入正確';
                 searchErrorHint.style.display = 'block';
             }
+            return;
+        }
+
+        // 為了支援「攜家帶眷」，如果匹配到的賓客有 phone，找出所有相同 phone 的家人加入群組
+        let groupGuests = [...matchedGuests];
+        
+        matchedGuests.forEach(mg => {
+            if (mg.phone) {
+                const family = data.guests.filter(g => g.phone === mg.phone);
+                family.forEach(fg => {
+                    if (!groupGuests.find(g => g.id === fg.id)) {
+                        groupGuests.push(fg);
+                    }
+                });
+            }
+        });
+
+        // 整理群組顯示
+        const resName = document.getElementById('resName');
+        const resGroupList = document.getElementById('resGroupList');
+        
+        if (groupGuests.length > 1) {
+            resName.textContent = `${groupGuests[0].name} 等 ${groupGuests.length} 位`;
+        } else {
+            resName.textContent = groupGuests[0].name;
+        }
+
+        resGroupList.innerHTML = '';
+        groupGuests.forEach(g => {
+            const tableInfo = data.tables.find(t => t.id === g.table);
+            const tableName = tableInfo ? tableInfo.name : '尚未分配';
+            const seatText = g.seat ? ` 第 <strong>${g.seat}</strong> 號座位` : '';
+            
+            let badges = '';
+            if (g.babySeat) badges += `<span style="font-size:1.1rem;" title="兒童安全座椅">👶</span> `;
+            if (g.diet === '素食') badges += `<span style="font-size:1.1rem;" title="素食餐點">🥗</span> `;
+
+            const itemHtml = `
+                <div style="background: #fdf0f2; border-radius: 12px; padding: 0.8rem 1rem; border: 1px solid rgba(223, 90, 119, 0.2);">
+                    <div style="font-weight:bold; font-size:1.1rem; color:var(--text-main); margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
+                        👤 ${g.name} <span style="margin-left:auto;">${badges}</span>
+                    </div>
+                    <div style="color:var(--text-muted); font-size:0.95rem;">
+                        📍 【<span style="color:var(--primary); font-weight:600;">${tableName}</span>】${seatText}
+                    </div>
+                </div>
+            `;
+            resGroupList.insertAdjacentHTML('beforeend', itemHtml);
+        });
+
+        const searchModal = document.getElementById('searchModal');
+        if (searchModal) searchModal.style.display = 'none';
+
+        resultModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // 顯示「查看地圖」按鈕
+        if (data.tables.length > 0) {
+            btnOpenMap.style.display = 'block';
+            btnOpenMap.onclick = () => {
+                // 先隱藏結果層
+                resultModal.style.display = 'none';
+                renderMap(data, groupGuests);
+                mapModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            };
+        } else {
+            btnOpenMap.style.display = 'none';
         }
     });
 
