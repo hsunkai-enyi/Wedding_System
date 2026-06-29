@@ -405,12 +405,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (g.diet === '素食') badges += `<span style="font-size:1.1rem;" title="素食餐點">🥗</span> `;
 
             const itemHtml = `
-                <div style="background: #fdf0f2; border-radius: 12px; padding: 0.8rem 1rem; border: 1px solid rgba(223, 90, 119, 0.2);">
-                    <div style="font-weight:bold; font-size:1.1rem; color:var(--text-main); margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
-                        👤 ${g.name} <span style="margin-left:auto;">${badges}</span>
+                <div style="background: #fdf0f2; border-radius: 12px; padding: 0.8rem 1rem; border: 1px solid rgba(223, 90, 119, 0.2); display: flex; align-items: center; justify-content: space-between;">
+                    <div style="font-weight:bold; font-size:1.1rem; color:var(--text-main); display:flex; align-items:center; gap:0.4rem;">
+                        👤 ${g.name} ${badges ? `<span style="margin-left:0.2rem;">${badges}</span>` : ''}
                     </div>
-                    <div style="color:var(--text-muted); font-size:0.95rem;">
-                        📍 【<span style="color:var(--primary); font-weight:600;">${tableName}</span>】
+                    <div style="color:var(--text-muted); font-size:0.95rem; display:flex; align-items:center;">
+                        📍 <span style="color:var(--primary); font-weight:600;">【${tableName}】</span>
                     </div>
                 </div>
             `;
