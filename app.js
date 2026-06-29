@@ -307,17 +307,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             mapContainer.appendChild(pin);
         });
 
-        // Modal footer 顯示桌次說明（含閃爍圓點）
         if (modalTableLabel) {
             let labelHtml = '';
             targetTableIds.forEach((tid, index) => {
                 const pinColor = colorPalette[index % colorPalette.length];
                 const tableInfo = data.tables.find(tbl => tbl.id === tid);
                 const tName = tableInfo ? tableInfo.name : '尚未分配';
+                
+                // 找出該桌的所有座位號碼
+                const seatsAtTable = groupGuests.filter(g => g.table === tid && g.seat).map(g => g.seat);
+                let seatText = '';
+                if (seatsAtTable.length > 0) {
+                    seatText = ` <span style="color:var(--text-muted); font-size:0.9rem;">　第 <strong style="color:${pinColor}; font-size:1.1rem;">${seatsAtTable.join(', ')}</strong> 號座位</span>`;
+                }
+
                 labelHtml += `
                     <div style="display:inline-flex; align-items:center; gap:0.6rem; background:#fdf0f2; border-radius:50px; padding:0.6rem 1.2rem; font-weight:600; margin: 0.2rem;">
                         <span style="display:inline-block; width:10px; height:10px; background:${pinColor}; border-radius:50%; box-shadow:0 0 0 0 ${pinColor}B3; animation:pulse 1.5s infinite; flex-shrink:0;"></span>
-                        <span style="color:var(--text-main); font-size:1.05rem;">您的座位：<strong style="color:${pinColor};">${tName}</strong></span>
+                        <span style="color:var(--text-main); font-size:1.05rem;">您的座位：<strong style="color:${pinColor};">${tName}</strong>${seatText}</span>
                     </div>
                 `;
             });
