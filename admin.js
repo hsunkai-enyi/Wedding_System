@@ -475,9 +475,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnSubmitGuest.addEventListener('click', () => {
-        const n = addGuestName.value.trim();
+        const rawNames = addGuestName.value.trim();
         const p = addGuestPhone ? addGuestPhone.value.trim() : '';
-        if (!n) return alert('請輸入姓名');
+        if (!rawNames) return alert('請輸入姓名');
+
+        // 支援多筆輸入：以空格、逗號或頓號分隔
+        const namesList = rawNames.split(/[,、\s]+/).filter(n => n.trim() !== '');
+        if (namesList.length === 0) return alert('請輸入有效姓名');
 
         let newCat = addGuestCategory.value.trim() || '未分類';
         if (newCat && newCat !== '未分類' && !categories.includes(newCat)) {
@@ -486,18 +490,31 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCategorySelects();
         }
 
-        guests.push({
-            id: 'g_' + Date.now(),
-            name: n,
-            phone: p,
-            category: newCat,
-            diet: document.querySelector('input[name="addGuestDiet"]:checked').value,
-            babySeat: addGuestBaby.checked,
-            table: '',
-            seat: ''
+        const dietVal = document.querySelector('input[name="addGuestDiet"]:checked').value;
+        const isBaby = addGuestBaby.checked;
+
+        namesList.forEach((n, index) => {
+            guests.push({
+                // 加入亂數避免連續輸入時 ID 重複
+                id: 'g_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + index,
+                name: n,
+                phone: p,
+                category: newCat,
+                diet: dietVal,
+                babySeat: isBaby,
+                table: '',
+                seat: ''
+            });
         });
+
         saveData();
         renderGuests();
+        
+        // 提示新增數量
+        if (namesList.length > 1) {
+            alert(`成功新增 ${namesList.length} 位嘉賓！`);
+        }
+
         addGuestName.value = '';
         if (addGuestPhone) addGuestPhone.value = '';
         // 刻意不重置 addGuestCategory.value，保留上一次選擇的分類，達到連續輸入時「自動填寫/記憶」的效果
