@@ -1,4 +1,4 @@
-// ==========================================
+﻿// ==========================================
 // 雲端資料庫設定區：請在此放入您發佈的 Google Apps Script 網址
 // ==========================================
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPOHNwJgpDtrpTdWvWm3wHN8hgntUhyCjb4qqN0s7VZEMdlne40RVfjFyp4HXCCar-/exec";
@@ -769,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         let phone = String(row[1] || '').trim();
                         let dietStr, babyStr, catStr;
                         
-                        // 相容舊版邏輯：判斷第二欄是不是填了素食或嬰兒椅
+                        // 相容舊版邏輯：判斷第二欄是不是填了素食或兒童座椅
                         if (['素食', '素', '葷食', '葷', '是', 'Y', '1'].includes(phone)) {
                             // 代表這份是舊格式 (沒有電話欄位)
                             dietStr = String(row[1] || '').trim();
@@ -1020,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentGuest) {
                 const filledDiv = document.createElement('div');
                 filledDiv.className = 'slot-filled-content';
-                let babyHtml = currentGuest.babySeat ? `<div class="baby-icon" title="嬰兒座椅">👶</div>` : '';
+                let babyHtml = currentGuest.babySeat ? `<div class="baby-icon" title="兒童座椅">👶</div>` : '';
                 filledDiv.innerHTML = `
                     <div style="flex:1; text-align:center;">${currentGuest.name}</div>
                     <span class="btn-clear" title="移除">✕</span>
@@ -1094,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         item.style.justifyContent = 'space-between';
 
                         let leftHtml = `<div style="display:flex; align-items:center; gap:0.5rem;"><span style="font-weight:700; color:var(--text-main);">${g.name}</span>`;
-                        if (g.babySeat) leftHtml += `<span title="嬰兒座椅" style="font-size:0.9rem;">👶</span>`;
+                        if (g.babySeat) leftHtml += `<span title="兒童座椅" style="font-size:0.9rem;">👶</span>`;
                         leftHtml += `</div>`;
 
                         let rightHtml = `<div style="display:flex; align-items:center; gap:0.4rem;">`;
