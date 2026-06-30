@@ -719,18 +719,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     const row = json[i];
                     if (row && row[0]) {
                         const name = String(row[0]).trim();
-                        const val1 = String(row[1] || '').trim();
-                        const val2 = String(row[2] || '').trim();
-                        const val3 = String(row[3] || '').trim(); // Category
+                        // 嘗試抓取電話，如果第二欄看起來像電話(包含數字)就當作電話
+                        let phone = String(row[1] || '').trim();
+                        let dietStr, babyStr, catStr;
+                        
+                        // 相容舊版邏輯：判斷第二欄是不是填了素食或嬰兒椅
+                        if (['素食', '素', '葷食', '葷', '是', 'Y', '1'].includes(phone)) {
+                            // 代表這份是舊格式 (沒有電話欄位)
+                            dietStr = String(row[1] || '').trim();
+                            babyStr = String(row[2] || '').trim();
+                            catStr = String(row[3] || '').trim();
+                            phone = ''; // 舊格式沒有電話
+                        } else {
+                            // 新格式 (有電話欄位)
+                            dietStr = String(row[2] || '').trim();
+                            babyStr = String(row[3] || '').trim();
+                            catStr = String(row[4] || '').trim();
+                        }
 
-                        let isVeg = (val1 === '素食' || val1 === '素' || val2 === '素食' || val2 === '素');
-                        let isBaby = (val1 === '是' || val1 === 'Y' || val1 === '1' || val2 === '是' || val2 === 'Y' || val2 === '1');
-                        let cat = val3 || '未分類';
+                        let isVeg = (dietStr === '素食' || dietStr === '素' || babyStr === '素食' || babyStr === '素');
+                        let isBaby = (dietStr === '是' || dietStr === 'Y' || dietStr === '1' || babyStr === '是' || babyStr === 'Y' || babyStr === '1');
+                        let cat = catStr || '未分類';
 
                         if (name) {
                             guests.push({
                                 id: 'g_' + Math.random().toString(36).substr(2, 9),
                                 name: name,
+                                phone: phone,
                                 category: cat,
                                 diet: isVeg ? '素食' : '葷食',
                                 babySeat: isBaby,
