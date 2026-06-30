@@ -123,7 +123,7 @@
                 <!-- Add Guest Form (Hidden by default) -->
                 <div id="addGuestForm" class="glass-card" style="display:none; margin-bottom: 2rem;">
                     <div class="input-row" style="margin-bottom:0; flex-wrap: wrap;">
-                        <input type="text" id="addGuestName" placeholder="姓名 (可空格分隔多人)" style="width: 170px;">
+                        <input type="text" id="addGuestName" placeholder="來賓姓名" style="width: 120px;">
                         <input type="text" id="addGuestPhone" placeholder="09XX-XXX-XXX" style="width: 120px;" maxlength="12" oninput="window.handlePhoneInput(event)">
                         <select id="addGuestCategory" style="width: 130px; padding:0.4rem; border-radius:6px; border:1px solid var(--border-dark); outline:none; font-family: inherit; font-size:0.9rem;"></select>
                         <div style="display:flex; align-items:center; gap:1rem; margin: 0 1rem;">
@@ -135,6 +135,7 @@
                         </label>
                         <div style="flex: 1;"></div>
                         <button class="btn-primary" id="btnSubmitGuest">儲存</button>
+                        <button class="btn-outline" style="border-color:var(--primary); color:var(--primary);" id="btnSubmitAndNext">儲存並新增下一位家人</button>
                         <button class="btn-outline" id="btnCancelGuest">取消</button>
                     </div>
                 </div>
@@ -375,6 +376,6 @@
         </div>
     </main>
 
-    <script src="admin.js?v=1.0.6"></script>
+    <script src="admin.js?v=1.0.7"></script>
 </body>
 </html>

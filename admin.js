@@ -475,13 +475,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     btnSubmitGuest.addEventListener('click', () => {
-        const rawNames = addGuestName.value.trim();
+        const n = addGuestName.value.trim();
         const p = addGuestPhone ? addGuestPhone.value.trim() : '';
-        if (!rawNames) return alert('請輸入姓名');
-
-        // 支援多筆輸入：以空格、逗號或頓號分隔
-        const namesList = rawNames.split(/[,、\s]+/).filter(n => n.trim() !== '');
-        if (namesList.length === 0) return alert('請輸入有效姓名');
+        if (!n) return alert('請輸入姓名');
 
         let newCat = addGuestCategory.value.trim() || '未分類';
         if (newCat && newCat !== '未分類' && !categories.includes(newCat)) {
@@ -493,10 +489,48 @@ document.addEventListener('DOMContentLoaded', () => {
         const dietVal = document.querySelector('input[name="addGuestDiet"]:checked').value;
         const isBaby = addGuestBaby.checked;
 
-        namesList.forEach((n, index) => {
+        guests.push({
+            id: 'g_' + Date.now(),
+            name: n,
+            phone: p,
+            category: newCat,
+            diet: dietVal,
+            babySeat: isBaby,
+            table: '',
+            seat: ''
+        });
+
+        saveData();
+        renderGuests();
+        
+        addGuestName.value = '';
+        if (addGuestPhone) addGuestPhone.value = '';
+        addGuestBaby.checked = false;
+        document.querySelector('input[name="addGuestDiet"][value="葷食"]').checked = true;
+        // 一般儲存後，隱藏表單
+        addGuestForm.style.display = 'none';
+        btnShowAddGuest.style.display = 'block';
+    });
+
+    const btnSubmitAndNext = document.getElementById('btnSubmitAndNext');
+    if (btnSubmitAndNext) {
+        btnSubmitAndNext.addEventListener('click', () => {
+            const n = addGuestName.value.trim();
+            const p = addGuestPhone ? addGuestPhone.value.trim() : '';
+            if (!n) return alert('請輸入姓名');
+
+            let newCat = addGuestCategory.value.trim() || '未分類';
+            if (newCat && newCat !== '未分類' && !categories.includes(newCat)) {
+                categories.push(newCat);
+                localStorage.setItem('weddingCategories', JSON.stringify(categories));
+                renderCategorySelects();
+            }
+
+            const dietVal = document.querySelector('input[name="addGuestDiet"]:checked').value;
+            const isBaby = addGuestBaby.checked;
+
             guests.push({
-                // 加入亂數避免連續輸入時 ID 重複
-                id: 'g_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + index,
+                id: 'g_' + Date.now(),
                 name: n,
                 phone: p,
                 category: newCat,
@@ -505,22 +539,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 table: '',
                 seat: ''
             });
+
+            saveData();
+            renderGuests();
+            
+            // 清空姓名與特定欄位，但保留電話與分類
+            addGuestName.value = '';
+            addGuestBaby.checked = false;
+            document.querySelector('input[name="addGuestDiet"][value="葷食"]').checked = true;
+            addGuestName.focus(); // 自動聚焦，方便繼續打字
         });
-
-        saveData();
-        renderGuests();
-        
-        // 提示新增數量
-        if (namesList.length > 1) {
-            alert(`成功新增 ${namesList.length} 位嘉賓！`);
-        }
-
-        addGuestName.value = '';
-        if (addGuestPhone) addGuestPhone.value = '';
-        // 刻意不重置 addGuestCategory.value，保留上一次選擇的分類，達到連續輸入時「自動填寫/記憶」的效果
-        addGuestBaby.checked = false;
-        document.querySelector('input[name="addGuestDiet"][value="葷食"]').checked = true;
-    });
+    }
 
     window.updateGuest = (gid, field, el) => {
         let guest = guests.find(g => g.id === gid);
