@@ -326,8 +326,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     searchBtn.addEventListener('click', async () => {
-        // 收起手機的虛擬鍵盤
+        // 收起手機的虛擬鍵盤，並給予短暫延遲讓畫面平順縮回，避免卡頓與殘影
         guestNameInput.blur();
+        await new Promise(resolve => setTimeout(resolve, 350));
 
         if (!isDataLoaded) {
             // 資料尚未載入完：等候最多 6 秒
