@@ -652,20 +652,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <input type="text" value="${g.name}" onchange="updateGuest('${g.id}', 'name', this)" style="width:100px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:1rem; color:var(--text-main); font-weight:500;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
+                    <input type="text" value="${g.name}" onchange="updateGuest('${g.id}', 'name', this)" style="width:100px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:1rem; color:var(--text-main); font-weight:500;">
                 </td>
                 <td>
-                    <input type="text" value="${g.phone || ''}" placeholder="09XX-XXX-XXX" onchange="updateGuest('${g.id}', 'phone', this)" maxlength="12" oninput="window.handlePhoneInput(event);" style="width:110px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main);" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
+                    <input type="text" value="${g.phone || ''}" placeholder="09XX-XXX-XXX" onchange="updateGuest('${g.id}', 'phone', this)" maxlength="12" oninput="window.handlePhoneInput(event);" style="width:110px; padding:0.4rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main);">
                 </td>
                 <td>
-                    <select onchange="updateGuest('${g.id}', 'category', this)" style="width:110px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:600;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
+                    <select onchange="updateGuest('${g.id}', 'category', this)" style="width:110px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:600;">
                         ${categories.includes(g.category || '未分類') ? '' : `<option value="${g.category}" selected>${g.category}</option>`}
                         ${categories.map(c => `<option value="${c}" ${(g.category || '未分類') === c ? 'selected' : ''}>${c}</option>`).join('')}
                         <option value="＋ 自訂新分類" style="color:var(--primary); font-weight:bold;">＋ 自訂新分類...</option>
                     </select>
                 </td>
                 <td>
-                    <select onchange="updateGuest('${g.id}', 'diet', this)" style="border:1px solid transparent; border-radius:12px; padding:0.3rem 0.6rem; outline:none; cursor:pointer; ${g.diet === '素食' ? 'background:#e8f5e9; color:#2e7d32; font-weight:bold;' : 'background:var(--btn-light); color:var(--text-muted);'}" onfocus="this.style.border='1px solid var(--primary)'" onblur="this.style.border='1px solid transparent'">
+                    <select onchange="updateGuest('${g.id}', 'diet', this)" style="border:1px solid transparent; border-radius:12px; padding:0.3rem 0.6rem; outline:none; cursor:pointer; ${g.diet === '素食' ? 'background:#e8f5e9; color:#2e7d32; font-weight:bold;' : 'background:var(--btn-light); color:var(--text-muted);'}">
                         <option value="葷食" ${g.diet === '葷食' ? 'selected' : ''}>葷食</option>
                         <option value="素食" ${g.diet === '素食' ? 'selected' : ''}>素食 🥦</option>
                     </select>
@@ -677,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </label>
                 </td>
                 <td>
-                    <select onchange="assignTableFromList('${g.id}', this)" style="max-width:160px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:500;" onfocus="this.style.border='1px solid var(--border-dark)'; this.style.background='#fff';" onblur="this.style.border='1px solid transparent'; this.style.background='transparent';">
+                    <select onchange="assignTableFromList('${g.id}', this)" style="max-width:160px; padding:0.3rem 0.5rem; border:1px solid transparent; border-radius:6px; outline:none; background:transparent; font-size:0.9rem; color:var(--text-main); font-weight:500;">
                         ${tableOptionsHtml}
                     </select>
                 </td>
