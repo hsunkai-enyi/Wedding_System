@@ -632,10 +632,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const unseatedOnly = filterUnseatedOnly.checked;
         const uniqueCategories = [...new Set(guests.map(g => g.category || '未分類'))].filter(c => c !== '未分類');
 
-        let filterHtml = '<option value="ALL">所有嘉賓 (' + guests.length + '人)</option>';
-        filterHtml += '<option value="未分類">未分類</option>';
+        // 每個分類的 總數 / 未排 統計
+        const catStats = {};
+        guests.forEach(g => {
+            const c = g.category || '未分類';
+            if (!catStats[c]) catStats[c] = { total: 0, unseated: 0 };
+            catStats[c].total++;
+            if (!g.table) catStats[c].unseated++;
+        });
+        const optLabel = (name, s) => {
+            if (!s || s.total === 0) return `${name}（0人）`;
+            return s.unseated === 0
+                ? `${name}（${s.total}人・✅全排好）`
+                : `${name}（${s.total}人・⚠️未排 ${s.unseated}）`;
+        };
+        const allStats = {
+            total: guests.length,
+            unseated: guests.filter(g => !g.table).length
+        };
+
+        let filterHtml = `<option value="ALL">${optLabel('所有嘉賓', allStats)}</option>`;
+        filterHtml += `<option value="未分類">${optLabel('未分類', catStats['未分類'])}</option>`;
         uniqueCategories.forEach(c => {
-            filterHtml += `<option value="${c}">${c}</option>`;
+            filterHtml += `<option value="${c}">${optLabel(c, catStats[c])}</option>`;
         });
         filterGuestCategory.innerHTML = filterHtml;
         if (filterGuestCategory.querySelector(`option[value="${currentFilter}"]`)) {
@@ -644,29 +663,33 @@ document.addEventListener('DOMContentLoaded', () => {
             filterGuestCategory.value = 'ALL';
         }
 
-        const totalGuests = guests.length;
-        const seatedGuests = guests.filter(g => g.table).length;
+        // 統計卡片跟著目前篩選的分類
+        const selCat = filterGuestCategory.value;
+        const scoped = selCat === 'ALL' ? guests : guests.filter(g => (g.category || '未分類') === selCat);
+        const totalGuests = scoped.length;
+        const seatedGuests = scoped.filter(g => g.table).length;
         const unseatedGuests = totalGuests - seatedGuests;
+        const scopeLabel = selCat === 'ALL' ? '' : `（${selCat}）`;
 
         guestStatsBar.innerHTML = `
             <div class="stat-card">
                 <div class="stat-icon" style="background: rgba(223, 90, 119, 0.1); color: var(--primary);">📝</div>
                 <div class="stat-info">
-                    <div class="label">總賓客人數</div>
+                    <div class="label">總賓客人數${scopeLabel}</div>
                     <div class="value">${totalGuests}</div>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon" style="background: rgba(46, 125, 50, 0.1); color: #2e7d32;">✅</div>
                 <div class="stat-info">
-                    <div class="label">已安排座位</div>
+                    <div class="label">已安排座位${scopeLabel}</div>
                     <div class="value">${seatedGuests}</div>
                 </div>
             </div>
             <div class="stat-card" style="${unseatedGuests > 0 ? 'border: 1px solid var(--primary); background: #fdf0f2;' : ''}">
-                <div class="stat-icon" style="background: ${unseatedGuests > 0 ? 'var(--primary)' : 'rgba(180, 83, 9, 0.1)'}; color: ${unseatedGuests > 0 ? '#white' : '#b45309'};">⚠️</div>
+                <div class="stat-icon" style="background: ${unseatedGuests > 0 ? 'var(--primary)' : 'rgba(180, 83, 9, 0.1)'}; color: ${unseatedGuests > 0 ? '#fff' : '#b45309'};">⚠️</div>
                 <div class="stat-info">
-                    <div class="label">尚未安排</div>
+                    <div class="label">尚未安排${scopeLabel}</div>
                     <div class="value" style="${unseatedGuests > 0 ? 'color: var(--primary);' : ''}">${unseatedGuests}</div>
                 </div>
             </div>
