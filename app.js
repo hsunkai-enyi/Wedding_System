@@ -209,9 +209,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 背景載入資料（不阻塞事件綁定）
     loadDataFromCloud();
 
+    // 點桌子顯示完整桌名（被點的桌子放大 + 黃框）
+    let pinTooltipEl = null;
+    let activePin = null;
+    function clearActivePin() {
+        if (activePin) {
+            activePin.style.transform = 'translate(-50%, -50%)';
+            activePin.style.outline = '';
+            activePin.style.zIndex = activePin.dataset.z || '5';
+            activePin = null;
+        }
+        if (pinTooltipEl) pinTooltipEl.style.display = 'none';
+    }
+    function showPinTooltip(pin, text) {
+        if (!pinTooltipEl) {
+            pinTooltipEl = document.createElement('div');
+            pinTooltipEl.style.cssText =
+                'position:absolute; z-index:50; transform:translate(-50%, calc(-100% - 8px)); ' +
+                'background:rgba(30,30,30,0.9); color:#fff; padding:4px 10px; border-radius:8px; ' +
+                'font-size:0.85rem; font-weight:600; white-space:nowrap; pointer-events:none;';
+            document.addEventListener('click', clearActivePin);
+        }
+        const wasSame = activePin === pin;
+        clearActivePin();
+        if (wasSame) return; // 再點一次同一桌 → 收起
+
+        activePin = pin;
+        pin.dataset.z = pin.style.zIndex;
+        pin.style.zIndex = '30';
+        pin.style.transform = 'translate(-50%, -50%) scale(1.35)';
+        pin.style.outline = '3px solid #ffc107';
+
+        mapContainer.appendChild(pinTooltipEl);
+        pinTooltipEl.textContent = text;
+        pinTooltipEl.style.left = pin.style.left;
+        pinTooltipEl.style.top = `calc(${pin.style.top} - ${pin.offsetHeight * 0.7}px)`;
+        // 靠邊的桌子改變對齊方向，避免提示框被地圖邊界切掉
+        const x = parseFloat(pin.style.left) || 50;
+        const shiftX = x > 75 ? '-90%' : x < 25 ? '-10%' : '-50%';
+        pinTooltipEl.style.transform = `translate(${shiftX}, calc(-100% - 8px))`;
+        pinTooltipEl.style.display = 'block';
+    }
+
     function renderMap(data, groupGuests = []) {
         const stageEl = mapContainer.querySelector('.map-stage');
         const aisleEl = mapContainer.querySelector('.map-aisle');
+        mapContainer.style.containerType = 'inline-size'; // 讓桌號字級可用 cqw 跟著地圖縮放
+        activePin = null;
+        if (pinTooltipEl) pinTooltipEl.style.display = 'none';
 
         if (data.mapUrl) {
             seatMapImage.src = data.mapUrl;
@@ -284,22 +329,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 pin.title = t.name;
             } else {
-                // 其他桌：呈現清晰標籤與桌名
+                // 其他桌：與後台編輯器等比例的圓形（後台不重疊，前台就不會重疊）
                 const pinColor = isMain ? '#e53935' : '#4a90d9';
+                const sizePx = isMain ? data.mainTableSize : data.guestTableSize;
+                const sizePct = (sizePx / (data.editorWidth || 800)) * 100;
+                // 一般桌不顯示文字，點擊才顯示桌名；主桌保留短字當定位地標
+                const label = isMain && t.name.trim().length <= 3 ? t.name.trim() : '';
+
+                pin.style.width = `${sizePct}%`;
+                pin.style.aspectRatio = '1 / 1';
+                pin.style.minWidth = '22px';
+                pin.style.borderRadius = '50%';
                 pin.style.background = pinColor;
                 pin.style.color = '#fff';
                 pin.style.border = '1.5px solid #fff';
-                pin.style.borderRadius = '14px';
-                pin.style.padding = '2px 7px';
-                pin.style.fontSize = 'clamp(0.65rem, 1.3vw, 0.76rem)';
-                pin.style.fontWeight = 'bold';
-                pin.style.whiteSpace = 'nowrap';
                 pin.style.boxShadow = '0 2px 6px rgba(0,0,0,0.25)';
                 pin.style.display = 'flex';
                 pin.style.alignItems = 'center';
                 pin.style.justifyContent = 'center';
-                pin.textContent = t.name;
+                pin.style.fontWeight = 'bold';
+                pin.style.lineHeight = '1';
+                pin.style.whiteSpace = 'nowrap';
+                pin.style.cursor = 'pointer';
+                pin.style.transition = 'transform 0.15s, box-shadow 0.15s';
+                pin.style.fontSize = `max(9px, ${sizePct * 0.32}cqw)`;
+                pin.textContent = label;
                 pin.title = t.name;
+                pin.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showPinTooltip(pin, t.name);
+                });
             }
 
             mapContainer.appendChild(pin);

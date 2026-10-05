@@ -216,6 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hotelMapData) {
                 localStorage.setItem('weddingHotelMap', hotelMapData);
             }
+            // 標記本機有尚未發佈到雲端的修改
+            localStorage.setItem('weddingLocalDirty', Date.now());
         } catch (e) {
             console.error('localStorage 儲存失敗:', e);
             if (e.name === 'QuotaExceededError') {
@@ -266,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(payload)
                 });
+                localStorage.removeItem('weddingLocalDirty');
                 alert("✅ 成功！已經將最新排位資料發佈到儲存點，賓客現在可以看到最新資訊了！");
             } catch (e) {
                 alert("❌ 發佈失敗，請檢查網路狀態或網址設定：" + e.toString());
@@ -1883,4 +1886,103 @@ document.addEventListener('DOMContentLoaded', () => {
     renderGuests();
     if (tables.length > 0) selectTable(tables[0].id);
     else renderTablesList();
+
+    // --- 從雲端同步資料（換電腦 / 清快取後才有資料）---
+    function refreshAllViews() {
+        renderCategorySelects();
+        updateAdminUI();
+        renderGuests();
+        activeTableId = null;
+        if (tables.length > 0) selectTable(tables[0].id);
+        else renderTablesList();
+        if (viewVenueLayout && viewVenueLayout.style.display !== 'none') renderMapEditor();
+        if (viewWeddingInfo && viewWeddingInfo.style.display !== 'none') renderWeddingInfoForm();
+    }
+
+    function applyCloudData(data) {
+        const parse = (v, fb) => {
+            if (v === undefined || v === null || v === '') return fb;
+            if (typeof v !== 'string') return v;
+            try { return JSON.parse(v); } catch { return fb; }
+        };
+
+        guests = parse(data.weddingGuests, []).map(g => {
+            if (!g.id) g.id = 'g_' + Math.random().toString(36).substr(2, 9);
+            if (g.babySeat === '是') g.babySeat = true;
+            if (g.babySeat === '否' || g.babySeat === '0') g.babySeat = false;
+            if (!g.diet) g.diet = '葷食';
+            if (!g.category) g.category = '未分類';
+            return g;
+        });
+        tables = parse(data.weddingTables, []).map(t => {
+            if (!t.name) t.name = t.id;
+            if (!t.type || t.type === '一般') t.type = '客桌';
+            if (!t.seatsCount) t.seatsCount = 10;
+            return t;
+        });
+        mapUrl = data.weddingMap || '';
+        mainTableSize = parseInt(data.weddingMainTableSize) || 110;
+        guestTableSize = parseInt(data.weddingGuestTableSize) || 90;
+        categories = parse(data.weddingCategories, categories);
+        weddingInfo = parse(data.weddingInfo, weddingInfo);
+        const rawHotel = data.weddingHotelMap || '';
+        hotelMapData = (rawHotel.startsWith('data:') || rawHotel.startsWith('http')) ? rawHotel : '';
+        if (!hotelMapData) localStorage.removeItem('weddingHotelMap');
+
+        ['weddingEditorWidth', 'weddingEditorHeight', 'weddingMapAspectW', 'weddingMapAspectH'].forEach(k => {
+            if (data[k] && data[k] !== '0' && data[k] !== 0) localStorage.setItem(k, data[k]);
+        });
+
+        saveData();
+        localStorage.removeItem('weddingLocalDirty'); // 剛從雲端拉下來，本機 = 雲端
+        localStorage.setItem('weddingSyncVersion', '1');
+        refreshAllViews();
+    }
+
+    async function loadAdminDataFromCloud() {
+        if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "在此放入您的網址") return;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        try {
+            const res = await fetch(`${GOOGLE_SCRIPT_URL}?t=${Date.now()}`, { signal: controller.signal });
+            const data = await res.json();
+            if (!data || !data.weddingGuests) return; // 雲端還沒資料，保留本機
+
+            const localHasData = guests.length > 0 || tables.length > 0;
+            // 舊版沒有 dirty flag：第一次升級且本機有資料時視為「可能未發佈」
+            const isDirty = !!localStorage.getItem('weddingLocalDirty') ||
+                (!localStorage.getItem('weddingSyncVersion') && localHasData);
+
+            const sameAsLocal =
+                data.weddingGuests === JSON.stringify(guests) &&
+                (data.weddingTables || '[]') === JSON.stringify(tables);
+
+            if (sameAsLocal) {
+                localStorage.removeItem('weddingLocalDirty');
+                localStorage.setItem('weddingSyncVersion', '1');
+                return;
+            }
+
+            if (isDirty && localHasData) {
+                const cloudCount = (JSON.parse(data.weddingGuests) || []).length;
+                const useCloud = confirm(
+                    `☁️ 雲端資料與這台電腦不同\n\n` +
+                    `雲端：${cloudCount} 位賓客\n本機：${guests.length} 位賓客（含未發佈修改）\n\n` +
+                    `按「確定」→ 載入雲端資料（本機未發佈的修改會被覆蓋）\n` +
+                    `按「取消」→ 保留本機資料（記得按「儲存並發佈」推上雲端）`
+                );
+                if (!useCloud) return;
+            }
+
+            applyCloudData(data);
+            console.log('✅ 已從雲端同步後台資料');
+        } catch (e) {
+            console.error('雲端資料載入失敗，使用本機資料', e);
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    loadAdminDataFromCloud();
 });
