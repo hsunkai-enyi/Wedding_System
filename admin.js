@@ -1,4 +1,4 @@
-﻿// ==========================================
+// ==========================================
 // 雲端資料庫設定區：請在此放入您發佈的 Google Apps Script 網址
 // ==========================================
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPOHNwJgpDtrpTdWvWm3wHN8hgntUhyCjb4qqN0s7VZEMdlne40RVfjFyp4HXCCar-/exec";
@@ -811,6 +811,90 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsArrayBuffer(file);
         excelUpload.value = ''; // reset
     });
+
+    // --- Excel Export Logic ---
+    const btnExportExcel = document.getElementById('btnExportExcel');
+    if (btnExportExcel) {
+        btnExportExcel.addEventListener('click', () => {
+            if (!guests || guests.length === 0) {
+                alert('⚠️ 目前沒有嘉賓資料可供匯出！');
+                return;
+            }
+
+            try {
+                // 1. 整理「嘉賓座位名單」資料
+                const guestSheetData = guests.map(g => {
+                    const tbl = tables.find(t => t.id === g.table);
+                    return {
+                        '來賓姓名': g.name || '',
+                        '電話號碼': g.phone || '',
+                        '嘉賓分類': g.category || '未分類',
+                        '飲食習慣': g.diet || '葷食',
+                        '兒童座椅': g.babySeat ? '是' : '否',
+                        '安排桌次': tbl ? tbl.name : '尚未安排'
+                    };
+                });
+
+                // 2. 整理「各桌賓客統計」資料
+                const tableSheetData = tables.map(tbl => {
+                    const guestsAtTable = guests.filter(g => g.table === tbl.id);
+                    const vegCount = guestsAtTable.filter(g => g.diet === '素食').length;
+                    const babyCount = guestsAtTable.filter(g => g.babySeat).length;
+                    const namesList = guestsAtTable.map(g => g.name).join('、');
+
+                    return {
+                        '桌次名稱': tbl.name,
+                        '桌次類型': tbl.type || '客桌',
+                        '座位容量': tbl.seatsCount,
+                        '已排人數': guestsAtTable.length,
+                        '素食人數': vegCount,
+                        '兒童椅數': babyCount,
+                        '桌內賓客名單': namesList || '（暫無賓客）'
+                    };
+                });
+
+                // 3. 建立工作簿 (Workbook)
+                const workbook = XLSX.utils.book_new();
+
+                // 建立第一個 Sheet：嘉賓名單
+                const wsGuests = XLSX.utils.json_to_sheet(guestSheetData);
+                wsGuests['!cols'] = [
+                    { wch: 16 }, // 姓名
+                    { wch: 15 }, // 電話
+                    { wch: 15 }, // 分類
+                    { wch: 12 }, // 飲食
+                    { wch: 10 }, // 兒童椅
+                    { wch: 18 }  // 桌次
+                ];
+                XLSX.utils.book_append_sheet(workbook, wsGuests, "嘉賓座位名單");
+
+                // 建立第二個 Sheet：各桌統計
+                if (tableSheetData.length > 0) {
+                    const wsTables = XLSX.utils.json_to_sheet(tableSheetData);
+                    wsTables['!cols'] = [
+                        { wch: 18 }, // 桌名
+                        { wch: 12 }, // 類型
+                        { wch: 10 }, // 容量
+                        { wch: 12 }, // 已排
+                        { wch: 10 }, // 素食
+                        { wch: 10 }, // 兒童椅
+                        { wch: 45 }  // 賓客名單
+                    ];
+                    XLSX.utils.book_append_sheet(workbook, wsTables, "各桌賓客統計");
+                }
+
+                // 4. 下載 Excel 檔案
+                const groom = (weddingInfo && weddingInfo.groomName) ? weddingInfo.groomName : '婚禮';
+                const bride = (weddingInfo && weddingInfo.brideName) ? weddingInfo.brideName : '';
+                const fileName = `${groom}♡${bride}_嘉賓座位名單.xlsx`;
+                XLSX.writeFile(workbook, fileName);
+
+            } catch (err) {
+                console.error('匯出 Excel 失敗:', err);
+                alert('❌ 匯出失敗，請確認資料是否正常！');
+            }
+        });
+    }
 
     // --- Table Graphics Logic ---
     let activeTableId = null;

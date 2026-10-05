@@ -343,25 +343,46 @@ body.envelope-page { overflow: hidden; }
 .inv-btn-search:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(223, 90, 119, 0.3); }
 
 .inv-btn-venue {
-  width: 100%;
-  padding: 1.1rem;
+  flex: 1;
+  padding: 1rem 0.5rem;
   border-radius: 16px;
   background: #fff;
   color: var(--primary);
   border: 1.8px solid var(--primary);
   font-family: var(--font-sans);
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   transition: all 0.3s;
-  margin-top: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.8rem;
+  gap: 0.4rem;
+  white-space: nowrap;
 }
 .inv-btn-venue:hover { background: #fdf0f2; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(223, 90, 119, 0.1); }
+
+.inv-btn-map-direct {
+  flex: 1;
+  padding: 1rem 0.5rem;
+  border-radius: 16px;
+  background: #fff;
+  color: #b45309;
+  border: 1.8px solid #b45309;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+.inv-btn-map-direct:hover { background: #fffbeb; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(180, 83, 9, 0.12); }
 
 .inv-admin {
   font-size: 0.65rem; color: rgba(155,105,75,0.4);

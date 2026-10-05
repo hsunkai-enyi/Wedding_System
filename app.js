@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 背景載入資料（不阻塞事件綁定）
     loadDataFromCloud();
 
-    function renderMap(data, groupGuests) {
+    function renderMap(data, groupGuests = []) {
         const stageEl = mapContainer.querySelector('.map-stage');
         const aisleEl = mapContainer.querySelector('.map-aisle');
 
@@ -238,7 +238,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         mapContainer.style.height = 'auto';
 
-        const targetTableIds = [...new Set(groupGuests.map(g => g.table).filter(id => id))];
+        const safeGroupGuests = Array.isArray(groupGuests) ? groupGuests : [];
+        const targetTableIds = [...new Set(safeGroupGuests.map(g => g.table).filter(id => id))];
         const colorPalette = ['#df5a77', '#4a90e2', '#f5a623', '#4caf50', '#9c27b0'];
 
         data.tables.forEach(t => {
@@ -257,7 +258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (isGuestTable) {
                 const pinColor = colorPalette[tableIndex % colorPalette.length];
                 
-                // 目標桌：固定大且清楚 (稍微縮小，避免手機過大)
+                // 目標桌：固定大且清楚
                 pin.style.width = 'clamp(38px, 9.5%, 52px)';
                 pin.style.aspectRatio = '1 / 1';
                 pin.style.height = 'auto';
@@ -283,24 +284,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 pin.title = t.name;
             } else {
-                // 其他桌：小點位置參考，hover 可看桌名
-                if (isMain) {
-                    // 主桌：較大紅點，醒目
-                    pin.style.width = '18px';
-                    pin.style.height = '18px';
-                    pin.style.borderRadius = '50%';
-                    pin.style.background = '#e53935';
-                    pin.style.border = '2px solid #fff';
-                    pin.style.boxShadow = '0 2px 6px rgba(229,57,53,0.5)';
-                } else {
-                    // 一般桌：鋼藍色，易辨識且不搶主角
-                    pin.style.width = '12px';
-                    pin.style.height = '12px';
-                    pin.style.borderRadius = '50%';
-                    pin.style.background = '#4a90d9';
-                    pin.style.border = '1.5px solid #2c6fad';
-                    pin.style.boxShadow = '0 1px 4px rgba(74,144,217,0.4)';
-                }
+                // 其他桌：呈現清晰標籤與桌名
+                const pinColor = isMain ? '#e53935' : '#4a90d9';
+                pin.style.background = pinColor;
+                pin.style.color = '#fff';
+                pin.style.border = '1.5px solid #fff';
+                pin.style.borderRadius = '14px';
+                pin.style.padding = '2px 7px';
+                pin.style.fontSize = 'clamp(0.65rem, 1.3vw, 0.76rem)';
+                pin.style.fontWeight = 'bold';
+                pin.style.whiteSpace = 'nowrap';
+                pin.style.boxShadow = '0 2px 6px rgba(0,0,0,0.25)';
+                pin.style.display = 'flex';
+                pin.style.alignItems = 'center';
+                pin.style.justifyContent = 'center';
+                pin.textContent = t.name;
                 pin.title = t.name;
             }
 
@@ -308,23 +306,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (modalTableLabel) {
-            let labelHtml = '';
-            targetTableIds.forEach((tid, index) => {
-                const pinColor = colorPalette[index % colorPalette.length];
-                const tableInfo = data.tables.find(tbl => tbl.id === tid);
-                const tName = tableInfo ? tableInfo.name : '尚未分配';
-                
-                const guestsAtTable = groupGuests.filter(g => g.table === tid);
-                const namesStr = guestsAtTable.map(g => g.name).join('、');
-                
-                labelHtml += `
-                    <div style="display:inline-flex; align-items:center; gap:0.6rem; background:#fdf0f2; border-radius:50px; padding:0.6rem 1.2rem; font-weight:600; margin: 0.2rem;">
-                        <span style="display:inline-block; width:10px; height:10px; background:${pinColor}; border-radius:50%; box-shadow:0 0 0 0 ${pinColor}B3; animation:pulse 1.5s infinite; flex-shrink:0;"></span>
-                        <span style="color:var(--text-main); font-size:1.05rem;">${namesStr}：<strong style="color:${pinColor};">${tName}</strong></span>
+            if (targetTableIds.length > 0) {
+                let labelHtml = '';
+                targetTableIds.forEach((tid, index) => {
+                    const pinColor = colorPalette[index % colorPalette.length];
+                    const tableInfo = data.tables.find(tbl => tbl.id === tid);
+                    const tName = tableInfo ? tableInfo.name : '尚未分配';
+                    
+                    const guestsAtTable = safeGroupGuests.filter(g => g.table === tid);
+                    const namesStr = guestsAtTable.map(g => g.name).join('、');
+                    
+                    labelHtml += `
+                        <div style="display:inline-flex; align-items:center; gap:0.6rem; background:#fdf0f2; border-radius:50px; padding:0.6rem 1.2rem; font-weight:600; margin: 0.2rem;">
+                            <span style="display:inline-block; width:10px; height:10px; background:${pinColor}; border-radius:50%; box-shadow:0 0 0 0 ${pinColor}B3; animation:pulse 1.5s infinite; flex-shrink:0;"></span>
+                            <span style="color:var(--text-main); font-size:1.05rem;">${namesStr}：<strong style="color:${pinColor};">${tName}</strong></span>
+                        </div>
+                    `;
+                });
+                modalTableLabel.innerHTML = labelHtml;
+            } else {
+                modalTableLabel.innerHTML = `
+                    <div style="display:inline-block; background:#fff3e0; color:#e65100; border-radius:50px; padding:0.4rem 1.2rem; font-weight:700; font-size:0.95rem; border:1px solid #ffe0b2;">
+                        📍 婚宴全區桌次配置圖
                     </div>
                 `;
-            });
-            modalTableLabel.innerHTML = labelHtml;
+            }
         }
     }
 
@@ -428,11 +434,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.body.style.overflow = 'hidden';
 
         // 顯示「查看地圖」按鈕
-        if (data.tables.length > 0) {
+        if (data.tables.length > 0 || data.mapUrl) {
             btnOpenMap.style.display = 'block';
             btnOpenMap.onclick = () => {
                 // 先隱藏結果層
                 resultModal.style.display = 'none';
+                switchMapTab('seat');
                 renderMap(data, groupGuests);
                 mapModal.style.display = 'flex';
                 document.body.style.overflow = 'hidden';
@@ -441,6 +448,60 @@ document.addEventListener('DOMContentLoaded', async () => {
             btnOpenMap.style.display = 'none';
         }
     });
+
+    // 🗺️ 地圖 Modal 頁籤切換邏輯 (桌次平面圖 vs 飯店位置圖)
+    const tabBtnSeatMap = document.getElementById('tabBtnSeatMap');
+    const tabBtnHotelMap = document.getElementById('tabBtnHotelMap');
+    const seatMapTabContent = document.getElementById('seatMapTabContent');
+    const hotelMapTabContent = document.getElementById('hotelMapTabContent');
+
+    function switchMapTab(tab) {
+        if (!tabBtnSeatMap || !tabBtnHotelMap) return;
+        if (tab === 'seat') {
+            tabBtnSeatMap.style.background = 'var(--primary)';
+            tabBtnSeatMap.style.color = '#fff';
+            tabBtnSeatMap.style.border = 'none';
+
+            tabBtnHotelMap.style.background = '#f8f9fa';
+            tabBtnHotelMap.style.color = '#666';
+            tabBtnHotelMap.style.border = '1px solid #ddd';
+
+            if (seatMapTabContent) seatMapTabContent.style.display = 'block';
+            if (hotelMapTabContent) hotelMapTabContent.style.display = 'none';
+        } else {
+            tabBtnHotelMap.style.background = 'var(--primary)';
+            tabBtnHotelMap.style.color = '#fff';
+            tabBtnHotelMap.style.border = 'none';
+
+            tabBtnSeatMap.style.background = '#f8f9fa';
+            tabBtnSeatMap.style.color = '#666';
+            tabBtnSeatMap.style.border = '1px solid #ddd';
+
+            if (seatMapTabContent) seatMapTabContent.style.display = 'none';
+            if (hotelMapTabContent) hotelMapTabContent.style.display = 'block';
+
+            // 同步飯店位置圖圖片
+            const modalHotelImg = document.getElementById('modalHotelMapImage');
+            const mainHotelImg = document.getElementById('hotelMapImage');
+            if (modalHotelImg && mainHotelImg && mainHotelImg.src) {
+                modalHotelImg.src = mainHotelImg.src;
+            }
+        }
+    }
+
+    if (tabBtnSeatMap) tabBtnSeatMap.addEventListener('click', () => switchMapTab('seat'));
+    if (tabBtnHotelMap) tabBtnHotelMap.addEventListener('click', () => switchMapTab('hotel'));
+
+    // 🗺️ 內頁直連「位置配置圖」按鈕邏輯
+    const btnOpenDirectMap = document.getElementById('btnOpenDirectMap');
+    if (btnOpenDirectMap) {
+        btnOpenDirectMap.addEventListener('click', () => {
+            switchMapTab('seat');
+            renderMap(weddingData, []);
+            mapModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        });
+    }
 
     // 關閉 Modal (包含查座位與地圖)
     const btnCloseResultModal = document.getElementById('btnCloseResultModal');
