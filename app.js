@@ -43,65 +43,98 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modalTableLabel = document.getElementById('modalTableLabel');
 
     // 啟動時先抓取遠端資料
-    async function loadDataFromCloud() {
-        if(GOOGLE_SCRIPT_URL === "在此放入您的網址") {
-            console.log("未設定 GOOGLE_SCRIPT_URL，退回讀取本地 localStorage");
-            fallbackToLocal();
-            return;
+    // Apps Script 實測回應 5~40 秒不等、偶爾 404，所以：
+    // 1) 先套用上次成功的快取（秒開）  2) 15 秒超時 + 重試  3) 失敗不再假裝「已載入」
+    const CLOUD_CACHE_KEY = 'weddingCloudCache';
+    let cloudLoadPromise = null;
+    let cloudLoadOk = false;
+
+    function applyCloudData(data) {
+        weddingData.guests = data.weddingGuests ? JSON.parse(data.weddingGuests) : [];
+        weddingData.mapUrl = data.weddingMap || '';
+        weddingData.tables = data.weddingTables ? JSON.parse(data.weddingTables) : [];
+        weddingData.mainTableSize = parseInt(data.weddingMainTableSize) || 110;
+        weddingData.guestTableSize = parseInt(data.weddingGuestTableSize) || 90;
+        weddingData.editorWidth = parseInt(data.weddingEditorWidth) || 800;
+        weddingData.editorHeight = parseInt(data.weddingEditorHeight) || 800;
+
+        // 儲存雲端傳回的正確地圖比例至本地
+        if (data.weddingMapAspectW) localStorage.setItem('weddingMapAspectW', data.weddingMapAspectW);
+        if (data.weddingMapAspectH) localStorage.setItem('weddingMapAspectH', data.weddingMapAspectH);
+        if (data.weddingInfo) {
+            weddingData.weddingInfo = JSON.parse(data.weddingInfo);
+        } else {
+            const storedInfo = localStorage.getItem('weddingInfo');
+            if (storedInfo) weddingData.weddingInfo = JSON.parse(storedInfo);
         }
+        weddingData.hotelMapData = data.weddingHotelMap || '';
+        isDataLoaded = true;
+        updateWeddingUI();
+    }
 
+    async function fetchCloudOnce(timeoutMs) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000); // 6秒超時機制
-
-        const loadingHint = document.getElementById('loadingHint');
-
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         try {
-            if (loadingHint) loadingHint.style.display = 'block';
-            
             // 加上 t 參數避免瀏覽器快取舊資料
             const response = await fetch(`${GOOGLE_SCRIPT_URL}?t=${Date.now()}`, {
-                signal: controller.signal
+                signal: controller.signal,
+                cache: 'no-store'
             });
-            clearTimeout(timeoutId);
-
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
-            
-            if (data && Object.keys(data).length > 0) {
-                weddingData.guests = data.weddingGuests ? JSON.parse(data.weddingGuests) : [];
-                weddingData.mapUrl = data.weddingMap || '';
-                weddingData.tables = data.weddingTables ? JSON.parse(data.weddingTables) : [];
-                weddingData.mainTableSize = parseInt(data.weddingMainTableSize) || 110;
-                weddingData.guestTableSize = parseInt(data.weddingGuestTableSize) || 90;
-                weddingData.editorWidth = parseInt(data.weddingEditorWidth) || 800;
-                weddingData.editorHeight = parseInt(data.weddingEditorHeight) || 800;
-                
-                // 儲存雲端傳回的正確地圖比例至本地
-                if (data.weddingMapAspectW) localStorage.setItem('weddingMapAspectW', data.weddingMapAspectW);
-                if (data.weddingMapAspectH) localStorage.setItem('weddingMapAspectH', data.weddingMapAspectH);
-                if (data.weddingInfo) {
-                    weddingData.weddingInfo = JSON.parse(data.weddingInfo);
-                } else {
-                    const storedInfo = localStorage.getItem('weddingInfo');
-                    if (storedInfo) weddingData.weddingInfo = JSON.parse(storedInfo);
-                }
-                weddingData.hotelMapData = data.weddingHotelMap || '';
-                
-                isDataLoaded = true;
-                updateWeddingUI();
-            } else {
-                fallbackToLocal();
-            }
-        } catch (e) {
-            if (e.name === 'AbortError') {
-                console.error("雲端資料連線超時，使用本地資料");
-            } else {
-                console.error("無法取得雲端資料", e);
-            }
-            fallbackToLocal();
+            if (!data || !data.weddingGuests) throw new Error('empty payload');
+            return data;
         } finally {
             clearTimeout(timeoutId);
-            if (loadingHint) loadingHint.style.display = 'none';
         }
+    }
+
+    function loadDataFromCloud() {
+        if (cloudLoadPromise) return cloudLoadPromise;
+        cloudLoadPromise = (async () => {
+            if (GOOGLE_SCRIPT_URL === "在此放入您的網址") {
+                console.log("未設定 GOOGLE_SCRIPT_URL，退回讀取本地 localStorage");
+                fallbackToLocal();
+                return;
+            }
+
+            // 先用快取讓畫面與查詢立刻可用
+            if (!cloudLoadOk) {
+                try {
+                    const cached = localStorage.getItem(CLOUD_CACHE_KEY);
+                    if (cached) applyCloudData(JSON.parse(cached));
+                } catch (e) {
+                    console.warn('快取解析失敗', e);
+                }
+            }
+
+            const loadingHint = document.getElementById('loadingHint');
+            if (loadingHint && !isDataLoaded) loadingHint.style.display = 'block';
+
+            const timeouts = [15000, 20000, 25000];
+            for (let i = 0; i < timeouts.length; i++) {
+                try {
+                    const data = await fetchCloudOnce(timeouts[i]);
+                    applyCloudData(data);
+                    cloudLoadOk = true;
+                    try {
+                        localStorage.setItem(CLOUD_CACHE_KEY, JSON.stringify(data));
+                    } catch (e) {
+                        console.warn('快取寫入失敗（容量不足？）', e);
+                    }
+                    break;
+                } catch (e) {
+                    console.error(`雲端資料載入失敗 (第 ${i + 1} 次)`, e);
+                    if (i < timeouts.length - 1) await new Promise(r => setTimeout(r, 800 * (i + 1)));
+                }
+            }
+
+            if (loadingHint) loadingHint.style.display = 'none';
+        })().finally(() => {
+            cloudLoadPromise = null;
+        });
+        return cloudLoadPromise;
     }
 
     function fallbackToLocal() {
@@ -398,45 +431,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         guestNameInput.blur();
         await new Promise(resolve => setTimeout(resolve, 350));
 
-        if (!isDataLoaded) {
-            // 資料尚未載入完：等候最多 6 秒
-            searchBtn.disabled = true;
-            searchBtn.innerHTML = '⏳ 查詢中...';
-            await new Promise(resolve => {
-                const check = setInterval(() => {
-                    if (isDataLoaded) { clearInterval(check); resolve(); }
-                }, 200);
-                setTimeout(() => { clearInterval(check); resolve(); }, 6000);
-            });
-            searchBtn.disabled = false;
-            searchBtn.innerHTML = '桌次查詢';
-        }
-
-        const name = guestNameInput.value.trim();
         const searchErrorHint = document.getElementById('searchErrorHint');
         if (searchErrorHint) searchErrorHint.style.display = 'none';
 
-        if (!name) {
+        const rawInput = guestNameInput.value;
+        if (!rawInput.trim()) {
             if (searchErrorHint) {
                 searchErrorHint.textContent = '⚠️ 請輸入您的姓名或電話末3碼';
                 searchErrorHint.style.display = 'block';
             }
             return;
         }
+
+        // 還沒有任何可用資料（沒快取、雲端也還沒回來）→ 等雲端，必要時重抓
+        if (!weddingData.guests || weddingData.guests.length === 0) {
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '⏳ 資料載入中...';
+            await loadDataFromCloud();
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = '立即查詢';
+        }
+
+        if (!weddingData.guests || weddingData.guests.length === 0) {
+            if (searchErrorHint) {
+                searchErrorHint.textContent = '⚠️ 網路不穩，賓客資料尚未載入，請稍後再按一次查詢';
+                searchErrorHint.style.display = 'block';
+            }
+            return;
+        }
+
         const data = weddingData;
-        
-        // 搜尋邏輯：完全符合姓名，或是電話末端符合輸入的數字
-        let matchedGuests = data.guests.filter(g => 
-            g.name === name || 
-            (g.phone && g.phone.endsWith(name))
-        );
+
+        // 正規化：全形→半形、移除所有空白/零寬字元、臺→台
+        const norm = s => String(s ?? '')
+            .normalize('NFKC')
+            .replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+            .replace(/臺/g, '台')
+            .toLowerCase();
+        const digitsOf = s => norm(s).replace(/\D/g, '');
+
+        const q = norm(rawInput);
+        // 輸入只含數字/符號 → 當電話查（可輸入末 3 碼或完整號碼，dash 可有可無）
+        const isPhoneQuery = /^[\d\-()+]+$/.test(q);
+        const qDigits = isPhoneQuery ? q.replace(/\D/g, '') : '';
+
+        let matchedGuests = data.guests.filter(g => {
+            if (isPhoneQuery) {
+                return qDigits.length >= 3 && g.phone && digitsOf(g.phone).endsWith(qDigits);
+            }
+            return norm(g.name) === q;
+        });
 
         if (matchedGuests.length === 0) {
-            const searchErrorHint = document.getElementById('searchErrorHint');
             if (searchErrorHint) {
                 searchErrorHint.textContent = '❌ 找不到相符資料，請確認是否輸入正確';
                 searchErrorHint.style.display = 'block';
             }
+            // 可能是快取過舊（後台剛新增的賓客），背景再抓一次最新資料
+            if (!cloudLoadOk) loadDataFromCloud();
             return;
         }
 
